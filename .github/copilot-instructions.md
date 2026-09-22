@@ -25,10 +25,22 @@ It classifies each finding as:
   the resolved value depends on runtime data
 - `expression-dynamic` — any other non-literal expression
 
-A screen with interactive elements and **no** locator attributes at all
-produces **no entries** for that screen. Treat that as a signal, not a
-bug: it means the element needs a `testID` added, or a different
-grounding strategy (live-validated fallback locator).
+- `missing` — an interactive element (touchable, input, `Pressable`,
+  `Switch`, or anything with an `onPress`/`onChangeText`-style handler)
+  with **no** locator attribute. It carries a `description` (placeholder or
+  child text) so the gap is identifiable. Treat it as a testability gap to
+  push back to engineering, or a case for a live-validated fallback
+  locator. `hasSpreadProps: true` means a `{...props}` spread might be
+  supplying the locator, so confirm before filing it.
+
+Every finding also has:
+- `conditions` — source text of each condition gating whether the element
+  mounts (ternary branch, `&&`, `if` block), outermost first. Non-empty
+  means a structural variant: ground it once under each persona/data state
+  that renders it.
+- `locatorStrength` — `strong` (testID) > `medium`
+  (accessibilityIdentifier) > `weak` (accessibilityLabel, user-facing copy
+  that gets localized and reworded).
 
 ## What Copilot should and shouldn't do here
 

@@ -90,7 +90,13 @@ redundant check.
   branch inside a mapped list, are captured as patterns, not blanks, not
   crashes, not hallucinated literal values
 - Partial gaps (some fields in a form missing IDs, not the whole screen)
-  are caught precisely, only the ungrounded fields produce no entries
+  are reported explicitly as `missing` findings with file, line, and a
+  description (e.g. the Cancel button), not left as silent absences
+- Persona-gated locators carry the gating condition (`isEntitled`,
+  `!(item.entitled)`), so the variants that need live validation are
+  identified by the scan itself
+- Each locator is tagged with `locatorStrength` (testID >
+  accessibilityIdentifier > accessibilityLabel)
 - Vendor component internals are correctly invisible to static scan,
   confirming that blind spot is real and needs either a testID added on
   our side or a live-validated fallback locator
