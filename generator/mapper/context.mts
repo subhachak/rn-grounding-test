@@ -9,6 +9,7 @@ export const MAPPING_RULES = `For each step, propose:
 - record: for a templated locator only, the RECORDS key that fills it ("collection.key"). Otherwise null.
 - text: the literal text to enter, for type only. Otherwise null.
 - gap: when the step targets an element listed under GAPS, its location (file:line). Otherwise null.
+- intent: with a gap only, what the step does to that element (tap | type | assertVisible | assertNotVisible), with text for type. Otherwise null.
 - rationale: one short sentence naming the evidence (visible text, screen, element).
 
 Use back for platform navigation back (hardware back button, navigation-bar back). If no locator fits, use action unmapped with a null locator, citing a gap when one matches. An unmapped step is a useful result; a guessed locator is not.`;

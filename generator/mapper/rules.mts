@@ -54,7 +54,9 @@ function propose(step: string, action: Action, f: RegistryFinding, extra: Partia
   const base = { step, action, record: null, text: null, rationale: why, source: 'rules' as const, ...extra };
   if (f.category === 'missing') {
     // Matched an element that has no locator: a confirmed testability gap.
-    return { proposal: { ...base, action: 'unmapped', locator: null, text: null, gap: evidence(f) } };
+    // Keep what the step meant to do so a validated fallback can do it.
+    const intent = action === 'back' || action === 'unmapped' ? null : action;
+    return { proposal: { ...base, action: 'unmapped', locator: null, gap: evidence(f), intent } };
   }
   return { proposal: { ...base, locator: f.value, gap: null } };
 }

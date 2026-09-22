@@ -7,7 +7,9 @@ import { generateConfig, generateSteps } from './codegen.mts';
 import { loadStory, uniqueSteps } from './features.mts';
 import { decideScenarios, decideStep } from './gate.mts';
 import { matchStep } from './mapper/rules.mts';
+import { fallbackStatus, loadValidations } from './fallbacks.mts';
 import { BASE_PAGE, buildPageModel, renderPage } from './pageobjects.mts';
+import { proposeTestIds, renderPatch, renderRemediation } from './remediation.mts';
 import { renderMarkdown, summarize } from './report.mts';
 import { loadRegistry, loadTestData } from './registry.mts';
 import { PLATFORMS, type MappingInput, type Platform, type PlatformResult, type Proposal } from './types.mts';
@@ -19,8 +21,11 @@ export const DEFAULT_TEST_DATA = path.join(ROOT, 'test-data', 'testdata.json');
 export const proposalsFile = (storyDir: string) => path.join(storyDir, 'proposals.json');
 export const defaultOutDir = (story: string) => path.join(ROOT, 'generated', story);
 
-// What the Copilot agent submitted, per platform and step text.
-export type AgentProposals = Partial<Record<Platform, Record<string, Omit<Proposal, 'step' | 'source'>>>>;
+// What the Copilot agent (or a QA engineer, marked "author": "human")
+// submitted, per platform and step text.
+export type AgentProposals = Partial<
+  Record<Platform, Record<string, Omit<Proposal, 'step' | 'source'> & { author?: 'agent' | 'human' }>>
+>;
 
 export function readAgentProposals(storyDir: string): AgentProposals {
   const file = proposalsFile(storyDir);
@@ -59,7 +64,10 @@ export function propose(input: MappingInput, agent: AgentProposals): Proposal[] 
   return input.steps.map((step): Proposal => {
     const m = matchStep(step, input);
     if ('proposal' in m) return m.proposal;
-    if (submitted[step]) return { step, ...submitted[step], source: 'agent' };
+    if (submitted[step]) {
+      const { author, ...rest } = submitted[step];
+      return { step, ...rest, source: author === 'human' ? 'human' : 'agent' };
+    }
     return {
       step,
       action: 'unmapped',
@@ -92,11 +100,32 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
   const registry = loadRegistry(ROOT);
   const testData = loadTestData(opts.testDataFile ?? DEFAULT_TEST_DATA);
   const agent = readAgentProposals(dir);
+  const testIds = proposeTestIds(registry);
+  const model = buildPageModel(registry, testIds);
+  const validations = loadValidations(ROOT);
 
   const results: PlatformResult[] = PLATFORMS.map((platform) => {
     const feature = features[platform];
     const proposals = propose({ platform, steps: uniqueSteps(feature), registry, testData }, agent);
-    const steps = proposals.map((p) => decideStep(p, registry, testData));
+    const steps = proposals.map((p) => {
+      const d = decideStep(p, registry, testData);
+      const member = d.gap && model.byGap.get(`${d.gap.file}:${d.gap.line}`);
+      if (!d.gap || !member?.fallback) return d;
+      const st = fallbackStatus(d.gap, platform, validations);
+      if (st.state === 'none') return d;
+      const rec = 'record' in st ? st.record : undefined;
+      return {
+        ...d,
+        fallback: {
+          state: st.state,
+          key: member.fallback.key,
+          proposedTestID: member.fallback.proposedTestID,
+          matches: rec?.matches,
+          device: rec?.device,
+          validatedAt: rec?.validatedAt,
+        },
+      };
+    });
     return {
       platform,
       feature: { ...feature, file: path.relative(ROOT, feature.file) },
@@ -109,7 +138,6 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
   // registry into <out>/../pageobjects, replacing the folder so a screen
   // removed from the app does not leave a stale page behind.
   const pageObjectsDir = path.join(path.dirname(outDir), 'pageobjects');
-  const model = buildPageModel(registry);
   fs.rmSync(pageObjectsDir, { recursive: true, force: true });
   fs.mkdirSync(pageObjectsDir, { recursive: true });
   fs.writeFileSync(path.join(pageObjectsDir, 'base.page.ts'), BASE_PAGE);
@@ -130,6 +158,12 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
       );
     }
   }
+  // Remediation is app-wide like the page objects: one patch for every gap.
+  const remediationDir = path.join(path.dirname(outDir), 'remediation');
+  fs.mkdirSync(remediationDir, { recursive: true });
+  fs.writeFileSync(path.join(remediationDir, 'testids.patch'), renderPatch(ROOT, testIds));
+  fs.writeFileSync(path.join(remediationDir, 'README.md'), renderRemediation(testIds));
+
   fs.writeFileSync(path.join(outDir, 'grounding-report.md'), renderMarkdown(story, results));
   fs.writeFileSync(path.join(outDir, 'grounding-report.json'), JSON.stringify(results, null, 2) + '\n');
 

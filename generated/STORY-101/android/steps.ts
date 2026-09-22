@@ -86,9 +86,8 @@ Then(/^the plan contribution amount is not displayed$/, async () => {
 });
 
 When(/^I open the contribution form$/, async () => {
-  // UNGROUNDED: no rule match (nothing in the registry matches "contribution form"); awaiting the Copilot agent (/generate-appium)
-  // no source evidence
-  return 'pending';
+  // testID=dashboard-contribute-button (src/screens/DashboardScreen.tsx:24), proposed by QA (manual mapping)
+  await DashboardPage.contributeButton.click();
 });
 
 Then(/^the contribution form is displayed$/, async () => {
@@ -102,9 +101,8 @@ When(/^I enter contribution amount "500"$/, async () => {
 });
 
 When(/^I enter contribution frequency "monthly"$/, async () => {
-  // UNGROUNDED: no rule match (nothing in the registry matches "contribution frequency"); awaiting the Copilot agent (/generate-appium)
-  // no source evidence
-  return 'pending';
+  // FALLBACK: no testID at src/screens/ContributionFormScreen.tsx:12 (proposed: contribution-frequency-input); validated on emulator-5554 16, 2026-09-22, 1 match
+  await typeText(ContributionFormPage.contributionFrequencyInput, "monthly");
 });
 
 When(/^I tap Submit$/, async () => {
@@ -113,9 +111,8 @@ When(/^I tap Submit$/, async () => {
 });
 
 When(/^I tap Cancel$/, async () => {
-  // UNGROUNDED: TouchableOpacity "Cancel"
-  // testability gap at src/screens/ContributionFormScreen.tsx:17
-  return 'pending';
+  // FALLBACK: no testID at src/screens/ContributionFormScreen.tsx:17 (proposed: contribution-cancel-button); validated on emulator-5554 16, 2026-09-22, 1 match
+  await ContributionFormPage.contributionCancelButton.click();
 });
 
 When(/^I tap Account Summary$/, async () => {

@@ -14,6 +14,8 @@
 //   G6  accessibilityLabel/Identifier locators pass with a warning
 //   G7  an unmapped step may cite a gap only if the registry has it as missing
 //   G8  type needs text; nothing else may carry text
+//   G9  an unmapped step's intent must fit the gap it cites (type on a
+//       TextInput, tap on a touchable) for a fallback to act on it
 import { Unverifiable, evaluateCondition, resolveTemplate } from './conditions.mts';
 import { evidence } from './registry.mts';
 import {
@@ -42,16 +44,31 @@ export function decideStep(p: Proposal, registry: RegistryFinding[], testData: T
     proposal: p,
     verdict,
     locator,
+    gap: null,
     errors,
     warnings,
   });
 
   if (p.action === 'unmapped') {
-    if (p.gap) {
-      const gap = registry.find((f) => f.category === 'missing' && evidence(f) === p.gap);
-      if (!gap) warnings.push({ rule: 'G7', message: `cited gap ${p.gap} is not a missing entry in the registry` });
+    const d = decision('ungrounded');
+    if (!p.gap) return d;
+    const gap = registry.find((f) => f.category === 'missing' && evidence(f) === p.gap);
+    if (!gap) {
+      warnings.push({ rule: 'G7', message: `cited gap ${p.gap} is not a missing entry in the registry` });
+      return d;
     }
-    return decision('ungrounded');
+    if (!p.intent) return d;
+    const fits =
+      p.intent === 'type' ? gap.element === 'TextInput' : p.intent === 'tap' ? TAPPABLE.has(gap.element) : true;
+    const textOk = p.intent === 'type' ? Boolean(p.text) : p.text === null;
+    if (!fits || !textOk) {
+      warnings.push({
+        rule: 'G9',
+        message: !fits ? `${p.intent} does not fit the gap's ${gap.element}` : `${p.intent} ${p.intent === 'type' ? 'has no text' : 'carries text'}`,
+      });
+      return d;
+    }
+    return { ...d, gap };
   }
 
   if (p.action === 'type' ? !p.text : p.text !== null) {

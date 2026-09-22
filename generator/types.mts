@@ -69,9 +69,11 @@ export const TAPPABLE = new Set([
   'Switch',
 ]);
 
-// rules: the deterministic matcher; agent: the Copilot agent's proposals.json;
-// none: neither has proposed anything for the step yet.
-export type ProposalSource = 'rules' | 'agent' | 'none';
+// rules: the deterministic matcher; agent: the Copilot agent, via
+// proposals.json; human: a QA engineer's entry in proposals.json
+// ("author": "human"), for when the agent is unavailable or wrong; none:
+// nothing has proposed a mapping for the step yet.
+export type ProposalSource = 'rules' | 'agent' | 'human' | 'none';
 
 // A proposal for one step text. `locator` must be a registry value copied
 // verbatim; the gate rejects anything else.
@@ -84,6 +86,9 @@ export interface Proposal {
   gap: string | null;
   rationale: string;
   source: ProposalSource;
+  // For an unmapped step that names a testability gap: what the step meant to
+  // do there, so a device-validated fallback locator can carry it out.
+  intent?: Exclude<Action, 'back' | 'unmapped'> | null;
 }
 
 export interface MappingInput {
@@ -93,7 +98,7 @@ export interface MappingInput {
   testData: TestData;
 }
 
-export type RuleId = 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'G6' | 'G7' | 'G8';
+export type RuleId = 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'G6' | 'G7' | 'G8' | 'G9';
 
 export interface Finding {
   rule: RuleId;
@@ -101,6 +106,15 @@ export interface Finding {
 }
 
 export type Verdict = 'accepted' | 'rejected' | 'ungrounded';
+
+export interface FallbackInfo {
+  state: 'unvalidated' | 'validated' | 'failed';
+  key: string; // gap location, file:line
+  proposedTestID: string;
+  matches?: number;
+  device?: string;
+  validatedAt?: string;
+}
 
 export interface ResolvedLocator {
   attribute: NonNullable<RegistryFinding['attribute']>;
@@ -115,6 +129,11 @@ export interface StepDecision {
   proposal: Proposal;
   verdict: Verdict;
   locator: ResolvedLocator | null;
+  // An ungrounded step's cited gap, when its intent fits that element and so
+  // a fallback locator could act on it.
+  gap: RegistryFinding | null;
+  // Set by the pipeline for a gap step that has a fallback page member.
+  fallback?: FallbackInfo;
   errors: Finding[];
   warnings: Finding[];
 }

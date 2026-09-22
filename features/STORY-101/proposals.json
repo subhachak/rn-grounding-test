@@ -1,0 +1,56 @@
+{
+  "android": {
+    "I open the contribution form": {
+      "action": "tap",
+      "locator": "dashboard-contribute-button",
+      "record": null,
+      "text": null,
+      "gap": null,
+      "intent": null,
+      "author": "human",
+      "rationale": "QA mapping: the dashboard's Contribute button opens the contribution form"
+    },
+    "I enter contribution frequency \"monthly\"": {
+      "action": "unmapped",
+      "locator": null,
+      "record": null,
+      "text": "monthly",
+      "gap": "src/screens/ContributionFormScreen.tsx:12",
+      "intent": "type",
+      "author": "human",
+      "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID"
+    }
+  },
+  "ios": {
+    "I open the contribution form": {
+      "action": "tap",
+      "locator": "dashboard-contribute-button",
+      "record": null,
+      "text": null,
+      "gap": null,
+      "intent": null,
+      "author": "human",
+      "rationale": "QA mapping: the dashboard's Contribute button opens the contribution form"
+    },
+    "I enter contribution frequency \"monthly\"": {
+      "action": "unmapped",
+      "locator": null,
+      "record": null,
+      "text": "monthly",
+      "gap": "src/screens/ContributionFormScreen.tsx:12",
+      "intent": "type",
+      "author": "human",
+      "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID"
+    },
+    "I choose \"2026-10-01\" in the date picker": {
+      "action": "unmapped",
+      "locator": null,
+      "record": null,
+      "text": null,
+      "gap": null,
+      "intent": null,
+      "author": "human",
+      "rationale": "QA mapping: the vendor date picker exposes nothing in app source; needs a vendor-supported locator"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "src/screens/ContributionFormScreen.tsx:12": {
+    "ios": {
+      "selector": "-ios predicate string:type == \"XCUIElementTypeTextField\" AND placeholderValue == \"Frequency (monthly/annual)\"",
+      "matches": 1,
+      "device": "iPhone 17 27.0",
+      "validatedAt": "2026-09-22T22:59:11.819Z"
+    },
+    "android": {
+      "selector": "//android.widget.EditText[@hint=\"Frequency (monthly/annual)\"]",
+      "matches": 1,
+      "device": "emulator-5554 16",
+      "validatedAt": "2026-09-22T23:01:56.735Z"
+    }
+  },
+  "src/screens/ContributionFormScreen.tsx:17": {
+    "android": {
+      "selector": "android=new UiSelector().description(\"Cancel\")",
+      "matches": 1,
+      "device": "emulator-5554 16",
+      "validatedAt": "2026-09-22T23:02:12.618Z"
+    }
+  }
+}

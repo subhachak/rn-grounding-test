@@ -1,0 +1,18 @@
+diff --git a/src/screens/ContributionFormScreen.tsx b/src/screens/ContributionFormScreen.tsx
+--- a/src/screens/ContributionFormScreen.tsx
++++ b/src/screens/ContributionFormScreen.tsx
+@@ -9,12 +9,12 @@
+     <View testID="contribution-form-screen">
+       <TextInput testID="contribution-amount-input" placeholder="Contribution amount" />
+       {/* frequency selector shipped without a testID, common gap */}
+-      <TextInput placeholder="Frequency (monthly/annual)" />
++      <TextInput testID="contribution-frequency-input" placeholder="Frequency (monthly/annual)" />
+       <TouchableOpacity testID="contribution-submit-button" onPress={() => navigation.goBack()}>
+         <Text>Submit</Text>
+       </TouchableOpacity>
+       {/* cancel action, also missing, same gap pattern */}
+-      <TouchableOpacity onPress={() => navigation.goBack()}>
++      <TouchableOpacity testID="contribution-cancel-button" onPress={() => navigation.goBack()}>
+         <Text>Cancel</Text>
+       </TouchableOpacity>
+     </View>

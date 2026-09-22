@@ -31,8 +31,9 @@ const run = generateStory(path.resolve(positionals[0]), {
 for (const r of run.results) {
   const s = summarize(r);
   console.log(
-    `${r.platform}: ${s.accepted}/${s.steps} steps grounded (${s.byRules} by rules, ${s.byAgent} by agent), ` +
-      `${s.ungrounded} gaps, ${s.awaitingAgent} awaiting agent, ${s.rejected} rejected, ` +
+    `${r.platform}: ${s.accepted}/${s.steps} steps grounded (${s.byRules} by rules, ${s.byAgent} by agent, ${s.byHuman} by QA), ` +
+      `${s.ungrounded} gaps (${s.fallbacksValidated} on validated fallbacks, ${s.fallbacksPending} fallbacks unvalidated), ` +
+      `${s.awaitingAgent} awaiting agent, ${s.rejected} rejected, ` +
       `${s.warnings} warnings, ${s.scenarioErrors} scenario errors`,
   );
 }

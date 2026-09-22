@@ -122,9 +122,46 @@ the only AI involved, and only for steps the rules cannot match.
    reason, so a gap shows up in the run rather than as a guessed locator.
    Configs and the grounding report are written per story.
 
+### Testability gaps: fix at source, fall back only when validated
+
+An interactive element with no locator (e.g. the Cancel button) is handled
+in two deterministic ways, neither of which guesses:
+
+1. **Proposed testID patch.** `generated/remediation/testids.patch` adds a
+   testID at each gap in the screen's existing naming convention
+   (`contribution-cancel-button`), with a summary in
+   `generated/remediation/README.md`. Engineering applies it with
+   `git apply generated/remediation/testids.patch`; a test proves the patch
+   applies and closes every gap.
+2. **Device-validated fallback**, until the patch lands. Each gap with
+   visible text or a placeholder gets per-platform fallback selectors
+   (`generator/fallbacks.mts`) as a page-object member that already has the
+   name its future testID will produce, so steps do not change when the
+   testID arrives. A fallback is used only after a device run confirmed it
+   matches exactly one element on that platform:
+
+   ```bash
+   VALIDATE_FALLBACKS=1 npx wdio run generated/STORY-101/wdio.ios.local.conf.ts
+   npm run generate -- features/STORY-101     # validated fallbacks become normal steps
+   ```
+
+   Results, with the exact selector tested and the device, are recorded in
+   `fallbacks/validations.json` (audit evidence); a changed selector needs
+   validating again. Unvalidated or failed fallbacks stay `pending`.
+
+Gaps with no visible text or placeholder, and vendor components (the date
+picker), get no fallback and stay `pending` with the reason.
+
+Steps the rules cannot map can also be mapped by a QA engineer in
+`features/<story>/proposals.json` with `"author": "human"` (reported as
+`QA`), the manual path when the Copilot agent is unavailable. The agent
+never overwrites a human mapping, and both go through the same gate.
+
 The CLI exits 2 when the gate rejected a mapping or a scenario failed G5.
-For STORY-101 the rules map 21 of 24 Android steps and 22 of 26 iOS steps;
-2 and 4 steps are left for the agent.
+For STORY-101 the rules map 21 of 24 Android steps and 23 of 26 iOS steps.
+The rest are QA-mapped in `proposals.json` (Copilot Free cannot run the
+agent yet), and every scenario runs on device except the vendor date-picker
+step: Android 49/49, iOS 47 passed with that 1 pending.
 
 ### Running the generated tests
 

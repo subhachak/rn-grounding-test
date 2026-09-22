@@ -2,10 +2,6 @@
 // app's testIDs and regenerate.
 import Page from './base.page';
 
-// Testability gaps (interactive elements with no locator, not reachable here):
-//   TextInput "Frequency (monthly/annual)" at src/screens/ContributionFormScreen.tsx:12
-//   TouchableOpacity "Cancel" at src/screens/ContributionFormScreen.tsx:17
-
 class ContributionFormPage extends Page {
   // testID=contribution-form-screen (src/screens/ContributionFormScreen.tsx:9)
   get root() {
@@ -17,9 +13,27 @@ class ContributionFormPage extends Page {
     return this.byTestId("contribution-amount-input");
   }
 
+  // FALLBACK: TextInput has no testID (src/screens/ContributionFormScreen.tsx:12); located by its visible text
+  // "Frequency (monthly/annual)". Proposed testID: contribution-frequency-input (generated/remediation/).
+  get contributionFrequencyInput() {
+    return this.fallback("src/screens/ContributionFormScreen.tsx:12", {
+      android: "//android.widget.EditText[@hint=\"Frequency (monthly/annual)\"]",
+      ios: "-ios predicate string:type == \"XCUIElementTypeTextField\" AND placeholderValue == \"Frequency (monthly/annual)\"",
+    });
+  }
+
   // testID=contribution-submit-button (src/screens/ContributionFormScreen.tsx:13)
   get contributionSubmitButton() {
     return this.byTestId("contribution-submit-button");
+  }
+
+  // FALLBACK: TouchableOpacity has no testID (src/screens/ContributionFormScreen.tsx:17); located by its visible text
+  // "Cancel". Proposed testID: contribution-cancel-button (generated/remediation/).
+  get contributionCancelButton() {
+    return this.fallback("src/screens/ContributionFormScreen.tsx:17", {
+      android: "android=new UiSelector().description(\"Cancel\")",
+      ios: "-ios predicate string:label == \"Cancel\"",
+    });
   }
 }
 

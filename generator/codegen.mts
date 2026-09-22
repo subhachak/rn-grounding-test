@@ -3,7 +3,7 @@
 // which act only through the shared page objects (pageobjects.mts), and a
 // local and a Sauce Labs config per platform.
 import path from 'node:path';
-import { importPath, memberCall, type PageModel } from './pageobjects.mts';
+import { importPath, memberCall, type PageMember, type PageModel } from './pageobjects.mts';
 import type { Platform, PlatformResult, StepDecision, StepKind, TestData } from './types.mts';
 
 const KEYWORD: Record<StepKind, string> = { context: 'Given', action: 'When', outcome: 'Then' };
@@ -20,7 +20,42 @@ function recordOf(testData: TestData, ref: string | null): Record<string, unknow
   return testData.records[collection]?.[key];
 }
 
-function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: Set<string>): string[] {
+const act = (intent: string, el: string, text: string | null, opts = '') =>
+  ({
+    tap: `await ${el}.click();`,
+    type: `await typeText(${el}, ${JSON.stringify(text)});`,
+    assertVisible: `await expectShown(${el}${opts});`,
+    assertNotVisible: `await expectHidden(${el}${opts});`,
+  })[intent as 'tap' | 'type' | 'assertVisible' | 'assertNotVisible'];
+
+// A gap step acts through its fallback member only once a device run has
+// validated that fallback on this platform. Unvalidated, it runs only in a
+// validation run (VALIDATE_FALLBACKS=1), which records the result.
+function fallbackBody(d: StepDecision, member: PageMember, platform: Platform): string[] {
+  const fb = d.fallback!;
+  const el = memberCall(member, undefined);
+  const head = `// FALLBACK: no testID at ${fb.key} (proposed: ${fb.proposedTestID})`;
+  if (fb.state === 'validated') {
+    return [`${head}; validated on ${fb.device}, ${fb.validatedAt?.slice(0, 10)}, 1 match`, act(d.proposal.intent!, el, d.proposal.text)];
+  }
+  if (fb.state === 'failed') {
+    return [`${head}; failed validation on ${platform}: ${fb.matches} matches, needs exactly 1`, `return 'pending';`];
+  }
+  return [
+    `${head}; not yet validated on ${platform}, so this runs only with VALIDATE_FALLBACKS=1`,
+    `if (!process.env.VALIDATE_FALLBACKS) return 'pending';`,
+    `const el = ${el};`,
+    `await validateFallback(${JSON.stringify(fb.key)});`,
+    act(d.proposal.intent!, 'el', d.proposal.text),
+  ];
+}
+
+function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: Set<string>, platform: Platform): string[] {
+  const fallbackMember = d.fallback && model.byGap.get(d.fallback.key);
+  if (fallbackMember) {
+    pagesUsed.add(fallbackMember.file);
+    return fallbackBody(d, fallbackMember, platform);
+  }
   if (d.verdict !== 'accepted') {
     const why =
       d.verdict === 'ungrounded'
@@ -29,7 +64,7 @@ function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: 
     return [...why.map((l) => `// ${l}`), `return 'pending';`];
   }
   const p = d.proposal;
-  const by = `proposed by ${p.source === 'rules' ? 'rule match' : 'Copilot agent'}`;
+  const by = `proposed by ${{ rules: 'rule match', agent: 'Copilot agent', human: 'QA (manual mapping)', none: '-' }[p.source]}`;
   if (p.action === 'back') return [`// ${by}`, 'await driver.back();'];
 
   const loc = d.locator!;
@@ -44,13 +79,7 @@ function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: 
     `// ${loc.attribute}=${loc.id} (${loc.evidence}), ${by}`,
     ...d.warnings.map((w) => `// WARNING ${w.rule}: ${w.message}`),
   ];
-  const action = {
-    tap: `await ${el}.click();`,
-    type: `await typeText(${el}, ${JSON.stringify(p.text)});`,
-    assertVisible: `await expectShown(${el}${opts});`,
-    assertNotVisible: `await expectHidden(${el}${opts});`,
-  }[p.action as 'tap' | 'type' | 'assertVisible' | 'assertNotVisible'];
-  return [...notes, action];
+  return [...notes, act(p.action, el, p.text, opts)];
 }
 
 export function generateSteps(
@@ -71,7 +100,7 @@ export function generateSteps(
   const defs: string[] = [];
   for (const d of result.steps) {
     defs.push(`${KEYWORD[kinds.get(d.step) ?? 'action']}(${stepPattern(d.step)}, async () => {`);
-    defs.push(...body(d, model, testData, pagesUsed).map((l) => `  ${l}`));
+    defs.push(...body(d, model, testData, pagesUsed, result.platform).map((l) => `  ${l}`));
     defs.push('});', '');
   }
 
@@ -81,7 +110,7 @@ export function generateSteps(
     `// fix the feature, test data, or app testIDs and regenerate.`,
     `import { Given, When, Then } from '@wdio/cucumber-framework';`,
     ...(defs.some((l) => l.includes('driver.')) ? [`import { driver } from '@wdio/globals';`] : []),
-    `import { expectShown, expectHidden, typeText } from '${importPath(stepsDir, pageObjectsDir, 'base.page')}';`,
+    `import { expectShown, expectHidden, typeText${defs.some((l) => l.includes('validateFallback(')) ? ', validateFallback' : ''} } from '${importPath(stepsDir, pageObjectsDir, 'base.page')}';`,
     ...[...pagesUsed].sort().map((f) => `import ${classOf.get(f)} from '${importPath(stepsDir, pageObjectsDir, f)}';`),
     '',
     ...defs,

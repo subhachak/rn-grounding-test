@@ -7,6 +7,9 @@ export function summarize(r: PlatformResult) {
     steps: r.steps.length,
     byRules: accepted('rules'),
     byAgent: accepted('agent'),
+    byHuman: accepted('human'),
+    fallbacksValidated: r.steps.filter((s) => s.fallback?.state === 'validated').length,
+    fallbacksPending: r.steps.filter((s) => s.fallback && s.fallback.state !== 'validated').length,
     awaitingAgent: r.steps.filter((s) => s.proposal.source === 'none').length,
     accepted: count('accepted'),
     rejected: count('rejected'),
@@ -27,8 +30,9 @@ export function renderMarkdown(story: string, results: PlatformResult[]): string
       '',
       `Feature: ${r.feature.name} (\`${r.feature.file}\`).`,
       '',
-      `${s.steps} unique steps: ${s.accepted} accepted (${s.byRules} by rules, ${s.byAgent} by the Copilot agent), ` +
-        `${s.rejected} rejected, ${s.ungrounded} ungrounded (${s.awaitingAgent} awaiting the agent), ` +
+      `${s.steps} unique steps: ${s.accepted} accepted (${s.byRules} by rules, ${s.byAgent} by the Copilot agent, ` +
+        `${s.byHuman} by QA), ${s.rejected} rejected, ${s.ungrounded} ungrounded (${s.awaitingAgent} awaiting the agent; ` +
+        `${s.fallbacksValidated} run on a device-validated fallback, ${s.fallbacksPending} fallbacks awaiting validation), ` +
         `${s.warnings} warnings. ${s.scenarioErrors} scenario-level (G5) errors.`,
       '',
       '| Step | Verdict | Source | Action | Locator | Evidence / reason |',
@@ -41,7 +45,15 @@ export function renderMarkdown(story: string, results: PlatformResult[]): string
           ? [d.locator ? d.locator.evidence : 'no locator needed', ...d.warnings.map((w) => `${w.rule} ${w.message}`)].join('; ')
           : d.verdict === 'rejected'
             ? d.errors.map((e) => `${e.rule} ${e.message}`).join('; ')
-            : `${d.proposal.gap ? `gap at ${d.proposal.gap}` : 'no source evidence'}: ${d.proposal.rationale}`;
+            : d.fallback
+              ? `gap at ${d.fallback.key} (proposed testID ${d.fallback.proposedTestID}); fallback ${
+                  d.fallback.state === 'validated'
+                    ? `validated on ${d.fallback.device} ${d.fallback.validatedAt?.slice(0, 10)}`
+                    : d.fallback.state === 'failed'
+                      ? `failed validation (${d.fallback.matches} matches)`
+                      : 'awaiting device validation'
+                }`
+              : `${d.proposal.gap ? `gap at ${d.proposal.gap}` : 'no source evidence'}: ${d.proposal.rationale}`;
       out.push(`| ${cell(d.step)} | ${d.verdict} | ${d.proposal.source} | ${d.proposal.action} | ${cell(locator)} | ${cell(reason)} |`);
     }
     const scenarioErrors = r.scenarios.filter((sc) => sc.errors.length);

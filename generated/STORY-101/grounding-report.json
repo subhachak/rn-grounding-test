@@ -328,6 +328,7 @@
           "evidence": "src/screens/LoginScreen.tsx:10",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -350,6 +351,7 @@
           "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -372,6 +374,7 @@
           "evidence": "src/screens/LoginScreen.tsx:21",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -394,6 +397,7 @@
           "evidence": "src/screens/LoginScreen.tsx:26",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -416,6 +420,7 @@
           "evidence": "src/screens/DashboardScreen.tsx:9",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -438,6 +443,7 @@
           "evidence": "src/screens/DashboardScreen.tsx:12",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -462,6 +468,7 @@
             "item.entitled"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -484,6 +491,7 @@
           "evidence": "src/screens/PlanListScreen.tsx:22",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -508,6 +516,7 @@
             "isEntitled"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -532,6 +541,7 @@
             "!(isEntitled)"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -554,6 +564,7 @@
           "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -578,6 +589,7 @@
             "!(item.entitled)"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -600,6 +612,7 @@
           "evidence": "src/screens/PlanListScreen.tsx:22",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -624,6 +637,7 @@
             "!(isEntitled)"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -648,6 +662,7 @@
             "isEntitled"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -655,16 +670,23 @@
         "step": "I open the contribution form",
         "proposal": {
           "step": "I open the contribution form",
-          "action": "unmapped",
-          "locator": null,
+          "action": "tap",
+          "locator": "dashboard-contribute-button",
           "record": null,
           "text": null,
           "gap": null,
-          "rationale": "no rule match (nothing in the registry matches \"contribution form\"); awaiting the Copilot agent (/generate-appium)",
-          "source": "none"
+          "intent": null,
+          "rationale": "QA mapping: the dashboard's Contribute button opens the contribution form",
+          "source": "human"
         },
-        "verdict": "ungrounded",
-        "locator": null,
+        "verdict": "accepted",
+        "locator": {
+          "attribute": "testID",
+          "id": "dashboard-contribute-button",
+          "evidence": "src/screens/DashboardScreen.tsx:24",
+          "conditions": []
+        },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -687,6 +709,7 @@
           "evidence": "src/screens/ContributionFormScreen.tsx:9",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -709,6 +732,7 @@
           "evidence": "src/screens/ContributionFormScreen.tsx:10",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -719,15 +743,36 @@
           "action": "unmapped",
           "locator": null,
           "record": null,
-          "text": null,
-          "gap": null,
-          "rationale": "no rule match (nothing in the registry matches \"contribution frequency\"); awaiting the Copilot agent (/generate-appium)",
-          "source": "none"
+          "text": "monthly",
+          "gap": "src/screens/ContributionFormScreen.tsx:12",
+          "intent": "type",
+          "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID",
+          "source": "human"
         },
         "verdict": "ungrounded",
         "locator": null,
+        "gap": {
+          "screen": "ContributionFormScreen",
+          "element": "TextInput",
+          "attribute": null,
+          "category": "missing",
+          "value": null,
+          "locatorStrength": null,
+          "conditions": [],
+          "description": "Frequency (monthly/annual)",
+          "file": "src/screens/ContributionFormScreen.tsx",
+          "line": 12
+        },
         "errors": [],
-        "warnings": []
+        "warnings": [],
+        "fallback": {
+          "state": "validated",
+          "key": "src/screens/ContributionFormScreen.tsx:12",
+          "proposedTestID": "contribution-frequency-input",
+          "matches": 1,
+          "device": "emulator-5554 16",
+          "validatedAt": "2026-09-22T23:01:56.735Z"
+        }
       },
       {
         "step": "I tap Submit",
@@ -748,6 +793,7 @@
           "evidence": "src/screens/ContributionFormScreen.tsx:13",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -761,12 +807,33 @@
           "rationale": "TouchableOpacity \"Cancel\"",
           "source": "rules",
           "locator": null,
-          "gap": "src/screens/ContributionFormScreen.tsx:17"
+          "gap": "src/screens/ContributionFormScreen.tsx:17",
+          "intent": "tap"
         },
         "verdict": "ungrounded",
         "locator": null,
+        "gap": {
+          "screen": "ContributionFormScreen",
+          "element": "TouchableOpacity",
+          "attribute": null,
+          "category": "missing",
+          "value": null,
+          "locatorStrength": null,
+          "conditions": [],
+          "description": "Cancel",
+          "file": "src/screens/ContributionFormScreen.tsx",
+          "line": 17
+        },
         "errors": [],
-        "warnings": []
+        "warnings": [],
+        "fallback": {
+          "state": "validated",
+          "key": "src/screens/ContributionFormScreen.tsx:17",
+          "proposedTestID": "contribution-cancel-button",
+          "matches": 1,
+          "device": "emulator-5554 16",
+          "validatedAt": "2026-09-22T23:02:12.618Z"
+        }
       },
       {
         "step": "I tap Account Summary",
@@ -787,6 +854,7 @@
           "evidence": "src/screens/DashboardScreen.tsx:18",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -809,6 +877,7 @@
           "evidence": "src/screens/AccountSummaryScreen.tsx:10",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": [
           {
@@ -831,6 +900,7 @@
         },
         "verdict": "accepted",
         "locator": null,
+        "gap": null,
         "errors": [],
         "warnings": []
       }
@@ -1197,6 +1267,7 @@
           "evidence": "src/screens/LoginScreen.tsx:10",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1219,6 +1290,7 @@
           "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1241,6 +1313,7 @@
           "evidence": "src/screens/LoginScreen.tsx:21",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1263,6 +1336,7 @@
           "evidence": "src/screens/LoginScreen.tsx:26",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1285,6 +1359,7 @@
           "evidence": "src/screens/DashboardScreen.tsx:9",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1307,6 +1382,7 @@
           "evidence": "src/screens/DashboardScreen.tsx:12",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1331,6 +1407,7 @@
             "item.entitled"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1353,6 +1430,7 @@
           "evidence": "src/screens/PlanListScreen.tsx:22",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1377,6 +1455,7 @@
             "isEntitled"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1401,6 +1480,7 @@
             "!(isEntitled)"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1423,6 +1503,7 @@
           "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1447,6 +1528,7 @@
             "!(item.entitled)"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1469,6 +1551,7 @@
           "evidence": "src/screens/PlanListScreen.tsx:22",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1493,6 +1576,7 @@
             "!(isEntitled)"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1517,6 +1601,7 @@
             "isEntitled"
           ]
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1524,16 +1609,23 @@
         "step": "I open the contribution form",
         "proposal": {
           "step": "I open the contribution form",
-          "action": "unmapped",
-          "locator": null,
+          "action": "tap",
+          "locator": "dashboard-contribute-button",
           "record": null,
           "text": null,
           "gap": null,
-          "rationale": "no rule match (nothing in the registry matches \"contribution form\"); awaiting the Copilot agent (/generate-appium)",
-          "source": "none"
+          "intent": null,
+          "rationale": "QA mapping: the dashboard's Contribute button opens the contribution form",
+          "source": "human"
         },
-        "verdict": "ungrounded",
-        "locator": null,
+        "verdict": "accepted",
+        "locator": {
+          "attribute": "testID",
+          "id": "dashboard-contribute-button",
+          "evidence": "src/screens/DashboardScreen.tsx:24",
+          "conditions": []
+        },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1556,6 +1648,7 @@
           "evidence": "src/screens/ContributionFormScreen.tsx:9",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1578,6 +1671,7 @@
           "evidence": "src/screens/ContributionFormScreen.tsx:10",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1588,15 +1682,36 @@
           "action": "unmapped",
           "locator": null,
           "record": null,
-          "text": null,
-          "gap": null,
-          "rationale": "no rule match (nothing in the registry matches \"contribution frequency\"); awaiting the Copilot agent (/generate-appium)",
-          "source": "none"
+          "text": "monthly",
+          "gap": "src/screens/ContributionFormScreen.tsx:12",
+          "intent": "type",
+          "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID",
+          "source": "human"
         },
         "verdict": "ungrounded",
         "locator": null,
+        "gap": {
+          "screen": "ContributionFormScreen",
+          "element": "TextInput",
+          "attribute": null,
+          "category": "missing",
+          "value": null,
+          "locatorStrength": null,
+          "conditions": [],
+          "description": "Frequency (monthly/annual)",
+          "file": "src/screens/ContributionFormScreen.tsx",
+          "line": 12
+        },
         "errors": [],
-        "warnings": []
+        "warnings": [],
+        "fallback": {
+          "state": "validated",
+          "key": "src/screens/ContributionFormScreen.tsx:12",
+          "proposedTestID": "contribution-frequency-input",
+          "matches": 1,
+          "device": "iPhone 17 27.0",
+          "validatedAt": "2026-09-22T22:59:11.819Z"
+        }
       },
       {
         "step": "I tap Submit",
@@ -1617,6 +1732,7 @@
           "evidence": "src/screens/ContributionFormScreen.tsx:13",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1639,6 +1755,7 @@
           "evidence": "src/screens/DashboardScreen.tsx:30",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1661,6 +1778,7 @@
           "evidence": "src/screens/ThirdPartyWidgetScreen.tsx:10",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1673,11 +1791,13 @@
           "record": null,
           "text": null,
           "gap": null,
-          "rationale": "no rule match (phrasing matches no rule); awaiting the Copilot agent (/generate-appium)",
-          "source": "none"
+          "intent": null,
+          "rationale": "QA mapping: the vendor date picker exposes nothing in app source; needs a vendor-supported locator",
+          "source": "human"
         },
         "verdict": "ungrounded",
         "locator": null,
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1700,6 +1820,7 @@
           "evidence": "src/screens/DashboardScreen.tsx:18",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": []
       },
@@ -1722,6 +1843,7 @@
           "evidence": "src/screens/AccountSummaryScreen.tsx:10",
           "conditions": []
         },
+        "gap": null,
         "errors": [],
         "warnings": [
           {
@@ -1744,6 +1866,7 @@
         },
         "verdict": "accepted",
         "locator": null,
+        "gap": null,
         "errors": [],
         "warnings": []
       }

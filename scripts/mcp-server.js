@@ -169,6 +169,7 @@ async function registerGenerationTools() {
             record: opt(),
             text: opt(),
             gap: opt(),
+            intent: z.enum(['tap', 'type', 'assertVisible', 'assertNotVisible']).nullable().optional(),
             rationale: z.string().optional(),
           }),
         ),
@@ -189,13 +190,18 @@ async function registerGenerationTools() {
         const file = pipeline.proposalsFile(dir);
         const saved = pipeline.readAgentProposals(dir);
         saved[platform] ??= {};
-        for (const p of proposals.filter((p) => pending.has(p.step))) {
+        // A QA engineer's manual mapping ("author": "human") is never
+        // overwritten by the agent.
+        const human = proposals.filter((p) => pending.has(p.step) && saved[platform][p.step]?.author === 'human');
+        ignored.push(...human.map((p) => `"${p.step}" (kept the QA engineer's mapping)`));
+        for (const p of proposals.filter((p) => pending.has(p.step) && saved[platform][p.step]?.author !== 'human')) {
           saved[platform][p.step] = {
             action: p.action,
             locator: p.locator ?? null,
             record: p.record ?? null,
             text: p.text ?? null,
             gap: p.gap ?? null,
+            intent: p.intent ?? null,
             rationale: p.rationale ?? '',
           };
         }
