@@ -2,17 +2,31 @@
   "name": "rn-grounding-test",
   "version": "1.0.0",
   "private": true,
-  "description": "Test harness for AST-based selector grounding, one representative screen per failure case (stable IDs, templated-dynamic IDs, persona-gated variants, missing IDs, accessibilityLabel-only, third-party component internals).",
+  "main": "node_modules/expo/AppEntry.js",
+  "description": "Runnable Expo/React Native app used as a stress test for AST-based selector grounding, representative screens for stable IDs, templated-dynamic IDs, persona-gated variants, missing IDs, accessibilityLabel-only, and third-party component internals.",
   "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
     "ground": "node scripts/extract-selectors.js ./src",
     "ground:save": "node scripts/extract-selectors.js ./src > registry.json && echo 'Wrote registry.json'"
   },
+  "dependencies": {
+    "expo": "~51.0.0",
+    "expo-status-bar": "~1.12.0",
+    "react": "18.2.0",
+    "react-native": "0.74.0",
+    "react-native-safe-area-context": "4.10.1",
+    "react-native-screens": "3.31.1",
+    "@react-navigation/native": "^6.1.17",
+    "@react-navigation/native-stack": "^6.9.26"
+  },
   "devDependencies": {
     "@babel/parser": "^7.24.0",
-    "@babel/traverse": "^7.24.0"
-  },
-  "peerDependencies": {
-    "react": "*",
-    "react-native": "*"
+    "@babel/traverse": "^7.24.0",
+    "@babel/core": "^7.24.0",
+    "babel-preset-expo": "~11.0.0",
+    "typescript": "^5.3.0",
+    "@types/react": "~18.2.79"
   }
 }

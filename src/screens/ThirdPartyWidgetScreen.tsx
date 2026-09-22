@@ -1,15 +1,16 @@
-// CASE 6: Wraps a third-party component that doesn't expose a testID prop
-// at all. Static extraction can only see what OUR code passes down, it
-// can't see inside the vendor component. Worth surfacing as a distinct
-// "no control over source" gap, different from case 4 (dev just forgot).
+// CASE 6: contribution date picker built on a vendor component that
+// doesn't expose a testID prop. Static extraction only ever sees our own
+// wrapper, never what's inside the dependency.
 import React from 'react';
-import { View } from 'react-native';
-// import { VendorDatePicker } from 'third-party-date-picker'; // hypothetical
+import { View, Text } from 'react-native';
+// import DatePicker from 'react-native-date-picker'; // hypothetical vendor lib
 
-export default function ThirdPartyWidgetScreen() {
+export default function ContributionDatePickerScreen() {
   return (
-    <View testID="third-party-widget-screen">
-      {/* <VendorDatePicker onChange={() => {}} /> no testID prop supported */}
+    <View testID="contribution-date-picker-screen">
+      <Text testID="contribution-date-picker-label">Select contribution date</Text>
+      {/* <DatePicker date={new Date()} onDateChange={() => {}} />
+          vendor component, no testID prop supported, invisible to AST scan */}
     </View>
   );
 }
