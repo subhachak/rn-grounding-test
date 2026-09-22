@@ -91,6 +91,8 @@ export interface Proposal {
   // For an unmapped step that names a testability gap: what the step meant to
   // do there, so a device-validated fallback locator can carry it out.
   intent?: Exclude<Action, 'back' | 'unmapped' | 'choose'> | null;
+  // Human approval of a non-rule mapping (agent or QA); rule matches need none.
+  approval?: 'approved' | 'awaiting' | 'stale' | 'self-approved';
 }
 
 export interface MappingInput {
@@ -110,12 +112,15 @@ export interface Finding {
 export type Verdict = 'accepted' | 'rejected' | 'ungrounded';
 
 export interface FallbackInfo {
-  state: 'unvalidated' | 'validated' | 'failed';
+  // validated = device-validated and approved by a person; awaiting-approval
+  // = device-validated, not yet approved.
+  state: 'unvalidated' | 'awaiting-approval' | 'validated' | 'failed';
   key: string; // gap location, file:line
   proposedTestID: string;
   matches?: number;
   device?: string;
   validatedAt?: string;
+  approvedBy?: string;
 }
 
 export interface ResolvedLocator {

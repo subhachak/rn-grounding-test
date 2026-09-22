@@ -8,7 +8,8 @@
       "gap": null,
       "intent": null,
       "author": "human",
-      "rationale": "QA mapping: the dashboard's Contribute button opens the contribution form"
+      "rationale": "QA mapping: the dashboard's Contribute button opens the contribution form",
+      "authoredBy": "Claude (stand-in QA)"
     },
     "I enter contribution frequency \"monthly\"": {
       "action": "unmapped",
@@ -18,7 +19,8 @@
       "gap": "src/screens/ContributionFormScreen.tsx:12",
       "intent": "type",
       "author": "human",
-      "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID"
+      "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID",
+      "authoredBy": "Claude (stand-in QA)"
     }
   },
   "ios": {
@@ -30,7 +32,8 @@
       "gap": null,
       "intent": null,
       "author": "human",
-      "rationale": "QA mapping: the dashboard's Contribute button opens the contribution form"
+      "rationale": "QA mapping: the dashboard's Contribute button opens the contribution form",
+      "authoredBy": "Claude (stand-in QA)"
     },
     "I enter contribution frequency \"monthly\"": {
       "action": "unmapped",
@@ -40,7 +43,8 @@
       "gap": "src/screens/ContributionFormScreen.tsx:12",
       "intent": "type",
       "author": "human",
-      "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID"
+      "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID",
+      "authoredBy": "Claude (stand-in QA)"
     }
   }
 }

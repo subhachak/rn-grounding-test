@@ -203,6 +203,11 @@ async function registerGenerationTools() {
             gap: p.gap ?? null,
             intent: p.intent ?? null,
             rationale: p.rationale ?? '',
+            author: 'agent',
+            authoredBy: 'copilot-agent',
+            // Kept as is: if the mapping changed, its fingerprint no longer
+            // matches and the generator treats it as needing re-approval.
+            ...(saved[platform][p.step]?.approval && { approval: saved[platform][p.step].approval }),
           };
         }
         fs.writeFileSync(file, JSON.stringify(saved, null, 2) + '\n');
@@ -223,6 +228,10 @@ async function registerGenerationTools() {
         section(
           'SCENARIO ERRORS (G5, fix the proposal or report a spec/test-data problem):',
           r.scenarios.flatMap((sc) => sc.errors.map((e) => `${sc.scenario} / "${e.step}": ${e.message}`)),
+        );
+        section(
+          'AWAITING HUMAN APPROVAL (used only after a person runs npm run approve):',
+          mine.filter((d) => d.proposal.approval && d.proposal.approval !== 'approved').map((d) => `"${d.step}" (${d.proposal.approval})`),
         );
         section('IGNORED:', ignored);
         section('STILL UNPROPOSED:', mine.filter((d) => d.proposal.source === 'none').map((d) => `"${d.step}"`));

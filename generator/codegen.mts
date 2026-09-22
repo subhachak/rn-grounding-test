@@ -3,6 +3,7 @@
 // which act only through the shared page objects (pageobjects.mts), and a
 // local and a Sauce Labs config per platform.
 import path from 'node:path';
+import { APPROVAL_REASON } from './approvals.mts';
 import { importPath, memberCall, type PageMember, type PageModel } from './pageobjects.mts';
 import type { Platform, PlatformResult, StepDecision, StepKind, TestData } from './types.mts';
 import { VENDOR_ADAPTERS, adapterFor } from './vendors.mts';
@@ -38,7 +39,13 @@ function fallbackBody(d: StepDecision, member: PageMember, platform: Platform): 
   const el = memberCall(member, undefined);
   const head = `// FALLBACK: no testID at ${fb.key} (proposed: ${fb.proposedTestID})`;
   if (fb.state === 'validated') {
-    return [`${head}; validated on ${fb.device}, ${fb.validatedAt?.slice(0, 10)}, 1 match`, act(d.proposal.intent!, el, d.proposal.text)];
+    return [
+      `${head}; validated on ${fb.device}, ${fb.validatedAt?.slice(0, 10)}, 1 match; approved by ${fb.approvedBy}`,
+      act(d.proposal.intent!, el, d.proposal.text),
+    ];
+  }
+  if (fb.state === 'awaiting-approval') {
+    return [`${head}; validated on ${fb.device} (1 match), awaiting human approval (npm run approve)`, `return 'pending';`];
   }
   if (fb.state === 'failed') {
     return [`${head}; failed validation on ${platform}: ${fb.matches} matches, needs exactly 1`, `return 'pending';`];
@@ -53,6 +60,16 @@ function fallbackBody(d: StepDecision, member: PageMember, platform: Platform): 
 }
 
 function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: Set<string>, platform: Platform): string[] {
+  // A mapping from the agent or a QA entry is not used until a person
+  // approves it, whatever the gate said: the gate checks that a mapping is
+  // possible, a person checks that it is right.
+  if (d.proposal.approval && d.proposal.approval !== 'approved') {
+    const by = d.proposal.source === 'agent' ? 'Copilot agent' : 'QA';
+    return [
+      `// ${by} mapping ${APPROVAL_REASON[d.proposal.approval]}; gate verdict: ${d.verdict}`,
+      `return 'pending';`,
+    ];
+  }
   const fallbackMember = d.fallback && model.byGap.get(d.fallback.key);
   if (fallbackMember) {
     pagesUsed.add(fallbackMember.file);

@@ -15,4 +15,6 @@ For the story you are given, for `android` then `ios`:
 2. Propose for every listed step, following those rules, and call `submit_proposals` once with all of them. Copy locators character for character. When nothing fits, submit `unmapped` (with the gap location if one matches) instead of guessing.
 3. If the result lists REJECTED steps, resubmit only those, corrected, at most twice. A SCENARIO ERROR that no mapping can fix is a problem in the feature or the test data: report it, don't work around it.
 
+Your accepted mappings are not used until a person approves them (`npm run approve -- <story> --list`); say which are waiting.
+
 Finish with a short summary per platform: grounded/total (by rules and by you), rejected, and each gap with its location, so engineering knows which testIDs to add. Point to `generated/<story>/grounding-report.md`. Don't repeat the tool output in full.

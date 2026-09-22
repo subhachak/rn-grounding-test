@@ -12,7 +12,8 @@
     "ground:save": "node scripts/extract-selectors.js ./src > registry.json && echo 'Wrote registry.json'",
     "generate": "node generator/cli.mts",
     "test:generator": "node --test \"generator/test/*.test.mts\"",
-    "typecheck:generator": "tsc -p generator && tsc -p generated"
+    "typecheck:generator": "tsc -p generator && tsc -p generated",
+    "approve": "node generator/approve.mts"
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "9.1.0",

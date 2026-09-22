@@ -152,6 +152,30 @@ in two deterministic ways, neither of which guesses:
 Gaps with no visible text or placeholder get no fallback and stay
 `pending` with the reason.
 
+### Human approval gates
+
+The gate checks that a mapping is possible (the element exists, fits the
+action, renders for the persona); it cannot check that it is right. So two
+things are used only after a named person approves them:
+
+- **Mappings not made by the rules**, from the Copilot agent or a QA entry
+  in `proposals.json`. Rule matches (exact, single matches on source
+  evidence) need no approval.
+- **Device-validated fallbacks**, since they are weaker than a testID.
+
+```bash
+npm run approve -- STORY-101 --list                                   # what is waiting, with the evidence
+npm run approve -- STORY-101 --step "I open the contribution form"     # approve a mapping (both platforms)
+npm run approve -- STORY-101 --fallback src/screens/ContributionFormScreen.tsx:17 --platform android
+npm run generate -- features/STORY-101
+```
+
+An approval records who (`--by`, default `git config user.name`) and when,
+bound to a fingerprint of exactly what was approved: if the mapping or the
+fallback selector changes later, it needs approving again. Whoever wrote a
+mapping (`authoredBy`) cannot approve it. Until approved, the step is
+generated as `pending` with the reason and the gate's verdict.
+
 ### Vendor components: adapters for what static extraction cannot see
 
 The contribution date picker is a real vendor component
@@ -175,10 +199,11 @@ never overwrites a human mapping, and both go through the same gate.
 
 The CLI exits 2 when the gate rejected a mapping or a scenario failed G5.
 For STORY-101 the rules map 21 of 24 Android steps and 24 of 26 iOS steps.
-The remaining step per platform ("I open the contribution form") is
-QA-mapped in `proposals.json` (Copilot Free cannot run the agent yet), and
-every scenario runs on device with nothing pending: Android 49/49, iOS
-49/49.
+The remaining steps are QA-mapped in `proposals.json` (Copilot Free cannot
+run the agent yet). With those mappings and the fallbacks approved, every
+scenario ran on device with nothing pending: Android 49/49, iOS 49/49.
+The sample's QA entries were written by Claude as a stand-in
+(`authoredBy`), so they need a person's approval before they are used.
 
 ### Running the generated tests
 

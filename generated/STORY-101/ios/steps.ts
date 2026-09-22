@@ -87,8 +87,8 @@ Then(/^the plan contribution amount is not displayed$/, async () => {
 });
 
 When(/^I open the contribution form$/, async () => {
-  // testID=dashboard-contribute-button (src/screens/DashboardScreen.tsx:24), proposed by QA (manual mapping)
-  await DashboardPage.contributeButton.click();
+  // QA mapping awaiting human approval (npm run approve); gate verdict: accepted
+  return 'pending';
 });
 
 Then(/^the contribution form is displayed$/, async () => {
@@ -102,8 +102,8 @@ When(/^I enter contribution amount "500"$/, async () => {
 });
 
 When(/^I enter contribution frequency "monthly"$/, async () => {
-  // FALLBACK: no testID at src/screens/ContributionFormScreen.tsx:12 (proposed: contribution-frequency-input); validated on iPhone 17 27.0, 2026-09-22, 1 match
-  await typeText(ContributionFormPage.contributionFrequencyInput, "monthly");
+  // QA mapping awaiting human approval (npm run approve); gate verdict: ungrounded
+  return 'pending';
 });
 
 When(/^I tap Submit$/, async () => {

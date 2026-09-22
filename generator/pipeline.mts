@@ -7,6 +7,7 @@ import { generateConfig, generateSteps } from './codegen.mts';
 import { loadStory, uniqueSteps } from './features.mts';
 import { decideScenarios, decideStep } from './gate.mts';
 import { matchStep } from './mapper/rules.mts';
+import { mappingApproval, type MappingEntry } from './approvals.mts';
 import { fallbackStatus, loadValidations } from './fallbacks.mts';
 import { BASE_PAGE, buildPageModel, renderPage } from './pageobjects.mts';
 import { proposeTestIds, renderPatch, renderRemediation } from './remediation.mts';
@@ -23,9 +24,7 @@ export const defaultOutDir = (story: string) => path.join(ROOT, 'generated', sto
 
 // What the Copilot agent (or a QA engineer, marked "author": "human")
 // submitted, per platform and step text.
-export type AgentProposals = Partial<
-  Record<Platform, Record<string, Omit<Proposal, 'step' | 'source'> & { author?: 'agent' | 'human' }>>
->;
+export type AgentProposals = Partial<Record<Platform, Record<string, MappingEntry>>>;
 
 export function readAgentProposals(storyDir: string): AgentProposals {
   const file = proposalsFile(storyDir);
@@ -65,8 +64,14 @@ export function propose(input: MappingInput, agent: AgentProposals): Proposal[] 
     const m = matchStep(step, input);
     if ('proposal' in m) return m.proposal;
     if (submitted[step]) {
-      const { author, ...rest } = submitted[step];
-      return { step, ...rest, source: author === 'human' ? 'human' : 'agent' };
+      const { author, authoredBy, approval, ...rest } = submitted[step];
+      return {
+        step,
+        ...rest,
+        intent: (rest.intent ?? null) as Proposal['intent'],
+        source: author === 'human' ? 'human' : 'agent',
+        approval: mappingApproval(submitted[step]),
+      };
     }
     return {
       step,
@@ -93,9 +98,9 @@ export interface GenerateOptions {
   testDataFile?: string;
 }
 
-export function generateStory(dir: string, opts: GenerateOptions = {}) {
-  const story = path.basename(dir);
-  const outDir = opts.outDir ?? defaultOutDir(story);
+// Every decision for a story, with no files written: what the generator
+// would emit, and what `npm run approve` shows a person before they sign off.
+export function decideStory(dir: string, opts: GenerateOptions = {}) {
   const features = loadStory(dir);
   const registry = loadRegistry(ROOT);
   const testData = loadTestData(opts.testDataFile ?? DEFAULT_TEST_DATA);
@@ -123,6 +128,7 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
           matches: rec?.matches,
           device: rec?.device,
           validatedAt: rec?.validatedAt,
+          approvedBy: st.state === 'validated' ? rec?.approval?.by : undefined,
         },
       };
     });
@@ -133,6 +139,13 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
       scenarios: decideScenarios(feature, steps, testData),
     };
   });
+  return { features, registry, testData, agent, testIds, model, validations, results };
+}
+
+export function generateStory(dir: string, opts: GenerateOptions = {}) {
+  const story = path.basename(dir);
+  const outDir = opts.outDir ?? defaultOutDir(story);
+  const { features, registry, testData, testIds, model, results } = decideStory(dir, opts);
 
   // Page objects are shared by every story: generated from the whole app's
   // registry into <out>/../pageobjects, replacing the folder so a screen

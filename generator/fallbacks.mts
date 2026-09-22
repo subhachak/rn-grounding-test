@@ -6,6 +6,7 @@
 // tested, in fallbacks/validations.json as audit evidence.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fallbackFingerprint, type Approval } from './approvals.mts';
 import { evidence } from './registry.mts';
 import { TAPPABLE, type Platform, type RegistryFinding } from './types.mts';
 
@@ -16,6 +17,7 @@ export interface ValidationRecord {
   matches: number;
   device: string;
   validatedAt: string;
+  approval?: Approval; // a person's sign-off, bound to key + selector
 }
 
 // gap location (file:line) -> platform -> latest validation
@@ -54,6 +56,7 @@ export function loadValidations(repoRoot: string): Validations {
 export type FallbackStatus =
   | { state: 'none' } // no candidate from source evidence (e.g. no visible text)
   | { state: 'unvalidated'; selectors: Selectors }
+  | { state: 'awaiting-approval'; selectors: Selectors; record: ValidationRecord }
   | { state: 'validated'; selectors: Selectors; record: ValidationRecord }
   | { state: 'failed'; selectors: Selectors; record: ValidationRecord };
 
@@ -64,5 +67,9 @@ export function fallbackStatus(gap: RegistryFinding, platform: Platform, validat
   if (!selectors) return { state: 'none' };
   const record = validations[evidence(gap)]?.[platform];
   if (!record || record.selector !== selectors[platform]) return { state: 'unvalidated', selectors };
-  return record.matches === 1 ? { state: 'validated', selectors, record } : { state: 'failed', selectors, record };
+  if (record.matches !== 1) return { state: 'failed', selectors, record };
+  // Device evidence alone is not enough: a person confirms it is the right
+  // element, and the sign-off only counts for the selector they saw.
+  const approved = record.approval?.fingerprint === fallbackFingerprint(evidence(gap), selectors[platform]);
+  return { state: approved ? 'validated' : 'awaiting-approval', selectors, record };
 }

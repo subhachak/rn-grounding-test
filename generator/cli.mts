@@ -32,9 +32,9 @@ for (const r of run.results) {
   const s = summarize(r);
   console.log(
     `${r.platform}: ${s.accepted}/${s.steps} steps grounded (${s.byRules} by rules, ${s.byAgent} by agent, ${s.byHuman} by QA), ` +
-      `${s.ungrounded} gaps (${s.fallbacksValidated} on validated fallbacks, ${s.fallbacksPending} fallbacks unvalidated), ` +
+      `${s.ungrounded} gaps (${s.fallbacksValidated} on approved fallbacks, ${s.fallbacksPending} fallbacks awaiting validation or approval), ` +
       `${s.awaitingAgent} awaiting agent, ${s.rejected} rejected, ` +
-      `${s.warnings} warnings, ${s.scenarioErrors} scenario errors`,
+      `${s.warnings} warnings, ${s.scenarioErrors} scenario errors, ${s.awaitingApproval} awaiting approval`,
   );
 }
 console.log(`wrote ${path.relative(ROOT, run.outDir)}/`);

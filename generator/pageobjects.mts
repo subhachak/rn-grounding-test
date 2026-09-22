@@ -171,7 +171,11 @@ export async function validateFallback(key: string) {
   const caps = driver.capabilities as Record<string, unknown>;
   const file = path.resolve(__dirname, '../../fallbacks/validations.json');
   const all = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf-8')) : {};
+  // Keep a person's approval when the same selector is re-validated; the
+  // generator ignores it anyway if the selector ever changes.
+  const prior = all[key]?.[platform];
   all[key] = { ...all[key], [platform]: {
+    ...(prior?.selector === selector && prior.approval && { approval: prior.approval }),
     selector,
     matches,
     device: \`\${caps.deviceName ?? caps['appium:deviceName'] ?? '?'} \${caps.platformVersion ?? caps['appium:platformVersion'] ?? ''}\`.trim(),

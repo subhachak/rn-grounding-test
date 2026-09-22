@@ -50,7 +50,7 @@ test('page object member names do not change when a testID replaces a fallback',
   }
 });
 
-test('a fallback counts as validated only for the selector that was tested, with one match', () => {
+test('a fallback counts as device-validated only for the selector that was tested, with one match', () => {
   const gap: RegistryFinding = {
     screen: 'S', element: 'TouchableOpacity', attribute: null, category: 'missing', value: null,
     locatorStrength: null, conditions: [], description: 'Cancel', file: 'src/S.tsx', line: 3,
@@ -58,7 +58,7 @@ test('a fallback counts as validated only for the selector that was tested, with
   const sel = fallbackSelectors(gap)!;
   const rec = (selector: string, matches: number) => ({ 'src/S.tsx:3': { ios: { selector, matches, device: 'd', validatedAt: 't' } } });
   assert.equal(fallbackStatus(gap, 'ios', {}).state, 'unvalidated');
-  assert.equal(fallbackStatus(gap, 'ios', rec(sel.ios, 1)).state, 'validated');
+  assert.equal(fallbackStatus(gap, 'ios', rec(sel.ios, 1)).state, 'awaiting-approval');
   assert.equal(fallbackStatus(gap, 'ios', rec(sel.ios, 2)).state, 'failed');
   assert.equal(fallbackStatus(gap, 'ios', rec('-ios predicate string:label == "Close"', 1)).state, 'unvalidated');
   assert.equal(fallbackStatus(gap, 'android', rec(sel.ios, 1)).state, 'unvalidated');
