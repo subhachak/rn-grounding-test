@@ -1,0 +1,18 @@
+{
+  "name": "rn-grounding-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test harness for AST-based selector grounding, one representative screen per failure case (stable IDs, templated-dynamic IDs, persona-gated variants, missing IDs, accessibilityLabel-only, third-party component internals).",
+  "scripts": {
+    "ground": "node scripts/extract-selectors.js ./src",
+    "ground:save": "node scripts/extract-selectors.js ./src > registry.json && echo 'Wrote registry.json'"
+  },
+  "devDependencies": {
+    "@babel/parser": "^7.24.0",
+    "@babel/traverse": "^7.24.0"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  }
+}

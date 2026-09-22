@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Ground Selectors (AST extraction)",
+      "type": "shell",
+      "command": "node scripts/extract-selectors.js ./src",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "detail": "Runs static AST extraction over src/screens and prints a categorized JSON registry (stable / templated-dynamic / expression-dynamic) to the terminal."
+    },
+    {
+      "label": "Ground Selectors (save to registry.json)",
+      "type": "shell",
+      "command": "npm run ground:save",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "detail": "Same as above, but writes the output to registry.json in the repo root."
+    }
+  ]
+}
