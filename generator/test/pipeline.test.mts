@@ -45,7 +45,8 @@ test('an agent proposal never overrides a rule match', () => {
 });
 
 test('the pipeline runs end to end, rules are never rejected, and every locator is grounded in source', () => {
-  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-'));
+  // Page objects land next to the story folder, so give the story its own dir.
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gen-')), 'STORY-101');
   const r = spawnSync(process.execPath, [path.join(ROOT, 'generator/cli.mts'), path.join(ROOT, 'features/STORY-101'), '--out', out], {
     encoding: 'utf-8',
   });
@@ -58,21 +59,31 @@ test('the pipeline runs end to end, rules are never rejected, and every locator 
     }
   }
 
-  // Every ID in generated code is either a static registry value or a
-  // registry template resolved against test data, never anything else.
-  const registry = loadRegistry(ROOT);
-  const staticIds = new Set(registry.filter((f) => f.category === 'stable').map((f) => f.value));
-  const templates = registry
-    .filter((f) => f.category === 'templated-dynamic')
-    .map((f) => new RegExp(`^${f.value!.slice(2, -2).replace(/\$\{[^}]+\}/g, '[^"]+')}$`));
+  // Locators live only in page objects: step files never build a selector.
   for (const platform of ['android', 'ios']) {
-    const code = fs.readFileSync(path.join(out, platform, 'steps.ts'), 'utf-8');
-    const ids = [...code.matchAll(/resourceId\(\\"([^\\]+)\\"\)|"~([^"]+)"/g)].map((m) => m[1] ?? m[2]);
-    assert.ok(ids.length > 0);
-    for (const id of ids) {
-      assert.ok(staticIds.has(id) || templates.some((t) => t.test(id)), `${platform}: ${id} is not grounded in source`);
+    const steps = fs.readFileSync(path.join(out, platform, 'steps.ts'), 'utf-8');
+    assert.doesNotMatch(steps, /\$\(|~|UiSelector/, `${platform} steps contain a raw selector`);
+  }
+
+  // Every locator in the page objects is a registry value: static IDs
+  // verbatim, templated IDs with the same fixed text around each placeholder.
+  const registry = loadRegistry(ROOT);
+  const shape = (v: string) => v.replace(/\$\{[^}]+\}/g, '${}');
+  const known = new Set(
+    registry
+      .filter((f) => f.category === 'stable' || f.category === 'templated-dynamic')
+      .map((f) => shape(f.value!.replace(/^\{`(.*)`\}$/, '$1'))),
+  );
+  const pagesDir = path.join(path.dirname(out), 'pageobjects');
+  let count = 0;
+  for (const file of fs.readdirSync(pagesDir).filter((f) => f !== 'base.page.ts')) {
+    const code = fs.readFileSync(path.join(pagesDir, file), 'utf-8');
+    for (const m of code.matchAll(/this\.by(?:TestId|Label)\((?:"([^"]+)"|`([^`]+)`)\)/g)) {
+      count++;
+      assert.ok(known.has(shape(m[1] ?? m[2])), `${file}: ${m[1] ?? m[2]} is not grounded in source`);
     }
   }
+  assert.ok(count > 0);
 });
 
 test('the MCP server behind the Copilot agent loads and registers its tools', () => {

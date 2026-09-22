@@ -104,7 +104,6 @@ export type Verdict = 'accepted' | 'rejected' | 'ungrounded';
 
 export interface ResolvedLocator {
   attribute: NonNullable<RegistryFinding['attribute']>;
-  element: string;
   id: string;
   evidence: string;
   conditions: string[];

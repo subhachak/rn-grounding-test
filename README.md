@@ -35,7 +35,8 @@ scripts/extract-selectors.js   the AST extraction script
 features/<story>/              android.feature + ios.feature per story, plus the agent's proposals.json once it has run
 test-data/testdata.json        personas and records the gate resolves conditions and templates against
 generator/                     feature -> grounded WebdriverIO + Cucumber generator (see below)
-generated/<story>/             generated step definitions, Sauce Labs configs, grounding report
+generated/pageobjects/         WebdriverIO page objects, one per screen, shared by every story
+generated/<story>/             generated step definitions, local + Sauce Labs configs, grounding report
 scripts/mcp-server.js          exposes the script as an MCP tool (ground_selectors)
 .vscode/mcp.json               registers that MCP server with VS Code
 .github/agents/selector-grounding.agent.md  Copilot custom agent using that tool
@@ -106,12 +107,20 @@ the only AI involved, and only for steps the rules cannot match.
    `test-data/testdata.json`: the locator must exist verbatim, templated IDs
    must resolve from a named record, persona-gated locators must actually
    render for the scenario's `@persona:` tag, and so on.
-5. **Generate** `generated/<story>/<platform>/steps.ts`,
-   `wdio.<platform>.conf.ts`, and `grounding-report.md`. Accepted steps get
-   the concrete selector, the source line, and whether rules or the agent
-   proposed it. Rejected and ungrounded steps are generated as `pending`
-   with the reason, so a gap shows up in the run rather than as a guessed
-   locator.
+5. **Generate** WebdriverIO page objects and step definitions.
+   `generated/pageobjects/` has one `<screen>.page.ts` per screen, built
+   from the whole app's registry and shared by every story: getters for
+   static testIDs (`LoginPage.submitButton`), methods for templated ones
+   (`PlanListPage.planItem('p1')`), render conditions and testability gaps
+   noted in comments. `base.page.ts` is the only place that knows how
+   locators surface per platform, how to assert container views on iOS,
+   and how to type reliably (`typeText` focuses, waits for the keyboard,
+   and reads the field back). `generated/<story>/<platform>/steps.ts` only
+   calls page objects (a test enforces that no step builds a selector);
+   each step cites its source line and whether rules or the agent mapped
+   it. Rejected and ungrounded steps are generated as `pending` with the
+   reason, so a gap shows up in the run rather than as a guessed locator.
+   Configs and the grounding report are written per story.
 
 The CLI exits 2 when the gate rejected a mapping or a scenario failed G5.
 For STORY-101 the rules map 21 of 24 Android steps and 22 of 26 iOS steps;

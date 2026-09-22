@@ -1,19 +1,10 @@
 // Deterministic WebdriverIO + Cucumber codegen from gate decisions. The
-// feature files stay the executable spec; this emits their step definitions
-// and a Sauce Labs config per platform.
+// feature files stay the executable spec; this emits their step definitions,
+// which act only through the shared page objects (pageobjects.mts), and a
+// local and a Sauce Labs config per platform.
 import path from 'node:path';
-import type { Platform, PlatformResult, ResolvedLocator, StepDecision, StepKind } from './types.mts';
-
-// RN maps testID to accessibilityIdentifier on iOS and to the view's
-// resource-id on Android; accessibilityLabel is the accessibility id on iOS
-// and content-desc on Android, which `~` covers on both. The Android testID
-// mapping is the one to confirm in the live-validation pass.
-export function selector(platform: Platform, loc: ResolvedLocator): string {
-  if (loc.attribute === 'testID' && platform === 'android') {
-    return `android=new UiSelector().resourceId(${JSON.stringify(loc.id)})`;
-  }
-  return `~${loc.id}`;
-}
+import { importPath, memberCall, type PageModel } from './pageobjects.mts';
+import type { Platform, PlatformResult, StepDecision, StepKind, TestData } from './types.mts';
 
 const KEYWORD: Record<StepKind, string> = { context: 'Given', action: 'When', outcome: 'Then' };
 
@@ -23,7 +14,13 @@ function stepPattern(text: string): string {
   return `/^${text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}$/`;
 }
 
-function body(platform: Platform, d: StepDecision): string[] {
+function recordOf(testData: TestData, ref: string | null): Record<string, unknown> | undefined {
+  if (!ref) return undefined;
+  const [collection, key] = ref.split('.');
+  return testData.records[collection]?.[key];
+}
+
+function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: Set<string>): string[] {
   if (d.verdict !== 'accepted') {
     const why =
       d.verdict === 'ungrounded'
@@ -32,31 +29,37 @@ function body(platform: Platform, d: StepDecision): string[] {
     return [...why.map((l) => `// ${l}`), `return 'pending';`];
   }
   const p = d.proposal;
-  if (p.action === 'back') return [`// proposed by ${p.source === 'rules' ? 'rule match' : 'Copilot agent'}`, 'await driver.back();'];
+  const by = `proposed by ${p.source === 'rules' ? 'rule match' : 'Copilot agent'}`;
+  if (p.action === 'back') return [`// ${by}`, 'await driver.back();'];
 
   const loc = d.locator!;
-  const sel = JSON.stringify(selector(platform, loc));
+  const member = model.byValue.get(p.locator!);
+  // The gate only accepts registry values, and every static or templated
+  // registry value has a page member, so a miss here is a generator bug.
+  if (!member) throw new Error(`no page object member for ${p.locator}`);
+  pagesUsed.add(member.file);
+  const el = memberCall(member, recordOf(testData, p.record));
+  const opts = member.container ? ', { container: true }' : '';
   const notes = [
-    `// ${loc.attribute}=${loc.id} (${loc.evidence}), proposed by ${p.source === 'rules' ? 'rule match' : 'Copilot agent'}`,
-    ...(loc.conditions.length ? [`// renders only when ${loc.conditions.join(' && ')}`] : []),
+    `// ${loc.attribute}=${loc.id} (${loc.evidence}), ${by}`,
     ...d.warnings.map((w) => `// WARNING ${w.rule}: ${w.message}`),
   ];
-  // XCUITest reports RN container views (a View wrapping other elements) as
-  // visible="false" even while their screen is on top, so a displayed check
-  // on one always fails on iOS. Found in the first live iOS run; for those,
-  // presence in the tree is the signal that the screen rendered.
-  const containerOnIos = platform === 'ios' && /View$/.test(loc.element);
-  const shown = containerOnIos ? 'toBeExisting()' : 'toBeDisplayed()';
   const action = {
-    tap: `await $(${sel}).click();`,
-    type: `await $(${sel}).setValue(${JSON.stringify(p.text)});`,
-    assertVisible: `await expect($(${sel})).${shown};`,
-    assertNotVisible: `await expect($(${sel})).not.${shown};`,
+    tap: `await ${el}.click();`,
+    type: `await typeText(${el}, ${JSON.stringify(p.text)});`,
+    assertVisible: `await expectShown(${el}${opts});`,
+    assertNotVisible: `await expectHidden(${el}${opts});`,
   }[p.action as 'tap' | 'type' | 'assertVisible' | 'assertNotVisible'];
-  return [...notes, ...(containerOnIos && p.action.startsWith('assert') ? ['// iOS container view: asserts presence, see codegen.mts'] : []), action];
+  return [...notes, action];
 }
 
-export function generateSteps(result: PlatformResult): string {
+export function generateSteps(
+  result: PlatformResult,
+  model: PageModel,
+  testData: TestData,
+  stepsDir: string,
+  pageObjectsDir: string,
+): string {
   // A step's keyword comes from its first use; Cucumber matches definitions
   // regardless of keyword, so this only affects readability.
   const kinds = new Map<string, StepKind>();
@@ -64,19 +67,25 @@ export function generateSteps(result: PlatformResult): string {
     if (!kinds.has(s.text)) kinds.set(s.text, s.kind);
   }
 
-  const out = [
+  const pagesUsed = new Set<string>();
+  const defs: string[] = [];
+  for (const d of result.steps) {
+    defs.push(`${KEYWORD[kinds.get(d.step) ?? 'action']}(${stepPattern(d.step)}, async () => {`);
+    defs.push(...body(d, model, testData, pagesUsed).map((l) => `  ${l}`));
+    defs.push('});', '');
+  }
+
+  const classOf = new Map([...model.pages.values()].map((pg) => [pg.file, pg.cls]));
+  return [
     `// GENERATED by generator/cli.mts from ${result.feature.file}. Do not edit;`,
     `// fix the feature, test data, or app testIDs and regenerate.`,
     `import { Given, When, Then } from '@wdio/cucumber-framework';`,
-    `import { $, driver, expect } from '@wdio/globals';`,
+    ...(defs.some((l) => l.includes('driver.')) ? [`import { driver } from '@wdio/globals';`] : []),
+    `import { expectShown, expectHidden, typeText } from '${importPath(stepsDir, pageObjectsDir, 'base.page')}';`,
+    ...[...pagesUsed].sort().map((f) => `import ${classOf.get(f)} from '${importPath(stepsDir, pageObjectsDir, f)}';`),
     '',
-  ];
-  for (const d of result.steps) {
-    out.push(`${KEYWORD[kinds.get(d.step) ?? 'action']}(${stepPattern(d.step)}, async () => {`);
-    out.push(...body(result.platform, d).map((l) => `  ${l}`));
-    out.push('});', '');
-  }
-  return out.join('\n');
+    ...defs,
+  ].join('\n');
 }
 
 export type RunTarget = 'sauce' | 'local';

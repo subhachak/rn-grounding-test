@@ -111,7 +111,6 @@ export function decideStep(p: Proposal, registry: RegistryFinding[], testData: T
   if (errors.length) return decision('rejected');
   return decision('accepted', {
     attribute: found.attribute!,
-    element: found.element,
     id,
     evidence: matches.map(evidence).join(', '),
     conditions: found.conditions,

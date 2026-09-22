@@ -13,7 +13,9 @@ export default function LoginScreen({ navigation }: any) {
         placeholder="Username"
         autoCapitalize="none"
         autoCorrect={false}
-        value={username}
+        // Uncontrolled on purpose: with value={username}, re-renders during
+        // fast input (XCUITest) reordered characters ("mer.restrictedmbe"),
+        // signing in the wrong persona.
         onChangeText={setUsername}
       />
       <TextInput testID="login-password-input" placeholder="Password" secureTextEntry />

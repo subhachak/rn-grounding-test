@@ -58,6 +58,10 @@ function evaluate(node: t.Node, scope: Scope): unknown {
   }
 }
 
+export function evaluateExpression(source: string, scope: Scope): unknown {
+  return evaluate(babelParser.parseExpression(source), scope);
+}
+
 export function evaluateCondition(source: string, scope: Scope): boolean {
   return Boolean(evaluate(babelParser.parseExpression(source), scope));
 }

@@ -7,6 +7,7 @@ import { generateConfig, generateSteps } from './codegen.mts';
 import { loadStory, uniqueSteps } from './features.mts';
 import { decideScenarios, decideStep } from './gate.mts';
 import { matchStep } from './mapper/rules.mts';
+import { BASE_PAGE, buildPageModel, renderPage } from './pageobjects.mts';
 import { renderMarkdown, summarize } from './report.mts';
 import { loadRegistry, loadTestData } from './registry.mts';
 import { PLATFORMS, type MappingInput, type Platform, type PlatformResult, type Proposal } from './types.mts';
@@ -104,11 +105,24 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
     };
   });
 
+  // Page objects are shared by every story: generated from the whole app's
+  // registry into <out>/../pageobjects, replacing the folder so a screen
+  // removed from the app does not leave a stale page behind.
+  const pageObjectsDir = path.join(path.dirname(outDir), 'pageobjects');
+  const model = buildPageModel(registry);
+  fs.rmSync(pageObjectsDir, { recursive: true, force: true });
+  fs.mkdirSync(pageObjectsDir, { recursive: true });
+  fs.writeFileSync(path.join(pageObjectsDir, 'base.page.ts'), BASE_PAGE);
+  for (const page of model.pages.values()) {
+    if (page.members.length) fs.writeFileSync(path.join(pageObjectsDir, `${page.file}.ts`), renderPage(page));
+  }
+
   fs.mkdirSync(outDir, { recursive: true });
   const appIds = readAppIds();
   for (const r of results) {
-    fs.mkdirSync(path.join(outDir, r.platform), { recursive: true });
-    fs.writeFileSync(path.join(outDir, r.platform, 'steps.ts'), generateSteps(r));
+    const stepsDir = path.join(outDir, r.platform);
+    fs.mkdirSync(stepsDir, { recursive: true });
+    fs.writeFileSync(path.join(stepsDir, 'steps.ts'), generateSteps(r, model, testData, stepsDir, pageObjectsDir));
     for (const target of ['sauce', 'local'] as const) {
       fs.writeFileSync(
         path.join(outDir, `wdio.${r.platform}${target === 'local' ? '.local' : ''}.conf.ts`),
@@ -125,5 +139,5 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
     const s = summarize(r);
     return s.rejected > 0 || s.scenarioErrors > 0;
   });
-  return { story, outDir, results, failed };
+  return { story, outDir, pageObjectsDir, results, failed };
 }

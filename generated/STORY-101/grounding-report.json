@@ -324,7 +324,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "View",
           "id": "login-screen",
           "evidence": "src/screens/LoginScreen.tsx:10",
           "conditions": []
@@ -347,7 +346,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TextInput",
           "id": "login-username-input",
           "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
@@ -370,9 +368,8 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TextInput",
           "id": "login-password-input",
-          "evidence": "src/screens/LoginScreen.tsx:19",
+          "evidence": "src/screens/LoginScreen.tsx:21",
           "conditions": []
         },
         "errors": [],
@@ -393,9 +390,8 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "login-submit-button",
-          "evidence": "src/screens/LoginScreen.tsx:24",
+          "evidence": "src/screens/LoginScreen.tsx:26",
           "conditions": []
         },
         "errors": [],
@@ -416,7 +412,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "View",
           "id": "dashboard-screen",
           "evidence": "src/screens/DashboardScreen.tsx:9",
           "conditions": []
@@ -439,7 +434,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "dashboard-view-plans-button",
           "evidence": "src/screens/DashboardScreen.tsx:12",
           "conditions": []
@@ -462,7 +456,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-item-entitled-badge-p1",
           "evidence": "src/screens/PlanListScreen.tsx:27",
           "conditions": [
@@ -487,7 +480,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "plan-item-p1",
           "evidence": "src/screens/PlanListScreen.tsx:22",
           "conditions": []
@@ -510,7 +502,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-details-contribution-amount",
           "evidence": "src/screens/PlanDetailsScreen.tsx:18",
           "conditions": [
@@ -535,7 +526,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-details-upgrade-prompt",
           "evidence": "src/screens/PlanDetailsScreen.tsx:22",
           "conditions": [
@@ -560,7 +550,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TextInput",
           "id": "login-username-input",
           "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
@@ -583,7 +572,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-item-restricted-badge-p2",
           "evidence": "src/screens/PlanListScreen.tsx:29",
           "conditions": [
@@ -608,7 +596,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "plan-item-p2",
           "evidence": "src/screens/PlanListScreen.tsx:22",
           "conditions": []
@@ -631,7 +618,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-details-upgrade-prompt",
           "evidence": "src/screens/PlanDetailsScreen.tsx:22",
           "conditions": [
@@ -656,7 +642,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-details-contribution-amount",
           "evidence": "src/screens/PlanDetailsScreen.tsx:18",
           "conditions": [
@@ -698,7 +683,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "View",
           "id": "contribution-form-screen",
           "evidence": "src/screens/ContributionFormScreen.tsx:9",
           "conditions": []
@@ -721,7 +705,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TextInput",
           "id": "contribution-amount-input",
           "evidence": "src/screens/ContributionFormScreen.tsx:10",
           "conditions": []
@@ -761,7 +744,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "contribution-submit-button",
           "evidence": "src/screens/ContributionFormScreen.tsx:13",
           "conditions": []
@@ -801,7 +783,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "dashboard-view-account-button",
           "evidence": "src/screens/DashboardScreen.tsx:18",
           "conditions": []
@@ -824,7 +805,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "accessibilityLabel",
-          "element": "Text",
           "id": "account-balance-text",
           "evidence": "src/screens/AccountSummaryScreen.tsx:10",
           "conditions": []
@@ -1213,7 +1193,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "View",
           "id": "login-screen",
           "evidence": "src/screens/LoginScreen.tsx:10",
           "conditions": []
@@ -1236,7 +1215,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TextInput",
           "id": "login-username-input",
           "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
@@ -1259,9 +1237,8 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TextInput",
           "id": "login-password-input",
-          "evidence": "src/screens/LoginScreen.tsx:19",
+          "evidence": "src/screens/LoginScreen.tsx:21",
           "conditions": []
         },
         "errors": [],
@@ -1282,9 +1259,8 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "login-submit-button",
-          "evidence": "src/screens/LoginScreen.tsx:24",
+          "evidence": "src/screens/LoginScreen.tsx:26",
           "conditions": []
         },
         "errors": [],
@@ -1305,7 +1281,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "View",
           "id": "dashboard-screen",
           "evidence": "src/screens/DashboardScreen.tsx:9",
           "conditions": []
@@ -1328,7 +1303,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "dashboard-view-plans-button",
           "evidence": "src/screens/DashboardScreen.tsx:12",
           "conditions": []
@@ -1351,7 +1325,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-item-entitled-badge-p1",
           "evidence": "src/screens/PlanListScreen.tsx:27",
           "conditions": [
@@ -1376,7 +1349,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "plan-item-p1",
           "evidence": "src/screens/PlanListScreen.tsx:22",
           "conditions": []
@@ -1399,7 +1371,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-details-contribution-amount",
           "evidence": "src/screens/PlanDetailsScreen.tsx:18",
           "conditions": [
@@ -1424,7 +1395,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-details-upgrade-prompt",
           "evidence": "src/screens/PlanDetailsScreen.tsx:22",
           "conditions": [
@@ -1449,7 +1419,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TextInput",
           "id": "login-username-input",
           "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
@@ -1472,7 +1441,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-item-restricted-badge-p2",
           "evidence": "src/screens/PlanListScreen.tsx:29",
           "conditions": [
@@ -1497,7 +1465,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "plan-item-p2",
           "evidence": "src/screens/PlanListScreen.tsx:22",
           "conditions": []
@@ -1520,7 +1487,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-details-upgrade-prompt",
           "evidence": "src/screens/PlanDetailsScreen.tsx:22",
           "conditions": [
@@ -1545,7 +1511,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "Text",
           "id": "plan-details-contribution-amount",
           "evidence": "src/screens/PlanDetailsScreen.tsx:18",
           "conditions": [
@@ -1587,7 +1552,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "View",
           "id": "contribution-form-screen",
           "evidence": "src/screens/ContributionFormScreen.tsx:9",
           "conditions": []
@@ -1610,7 +1574,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TextInput",
           "id": "contribution-amount-input",
           "evidence": "src/screens/ContributionFormScreen.tsx:10",
           "conditions": []
@@ -1650,7 +1613,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "contribution-submit-button",
           "evidence": "src/screens/ContributionFormScreen.tsx:13",
           "conditions": []
@@ -1673,7 +1635,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "dashboard-schedule-button",
           "evidence": "src/screens/DashboardScreen.tsx:30",
           "conditions": []
@@ -1696,7 +1657,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "View",
           "id": "contribution-date-picker-screen",
           "evidence": "src/screens/ThirdPartyWidgetScreen.tsx:10",
           "conditions": []
@@ -1736,7 +1696,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "testID",
-          "element": "TouchableOpacity",
           "id": "dashboard-view-account-button",
           "evidence": "src/screens/DashboardScreen.tsx:18",
           "conditions": []
@@ -1759,7 +1718,6 @@
         "verdict": "accepted",
         "locator": {
           "attribute": "accessibilityLabel",
-          "element": "Text",
           "id": "account-balance-text",
           "evidence": "src/screens/AccountSummaryScreen.tsx:10",
           "conditions": []

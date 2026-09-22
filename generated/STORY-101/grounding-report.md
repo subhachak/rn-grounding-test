@@ -10,8 +10,8 @@ Feature: Member reviews plans and starts a contribution (`features/STORY-101/and
 |---|---|---|---|---|---|
 | the login screen is displayed | accepted | rules | assertVisible | `login-screen` | src/screens/LoginScreen.tsx:10 |
 | I enter username "member.entitled" | accepted | rules | type | `login-username-input` | src/screens/LoginScreen.tsx:12 |
-| I enter password "Passw0rd!" | accepted | rules | type | `login-password-input` | src/screens/LoginScreen.tsx:19 |
-| I tap Log In | accepted | rules | tap | `login-submit-button` | src/screens/LoginScreen.tsx:24 |
+| I enter password "Passw0rd!" | accepted | rules | type | `login-password-input` | src/screens/LoginScreen.tsx:21 |
+| I tap Log In | accepted | rules | tap | `login-submit-button` | src/screens/LoginScreen.tsx:26 |
 | the dashboard is displayed | accepted | rules | assertVisible | `dashboard-screen` | src/screens/DashboardScreen.tsx:9 |
 | I tap View Plans | accepted | rules | tap | `dashboard-view-plans-button` | src/screens/DashboardScreen.tsx:12 |
 | plan "p1" shows the Active badge | accepted | rules | assertVisible | `plan-item-entitled-badge-p1` | src/screens/PlanListScreen.tsx:27 |
@@ -43,8 +43,8 @@ Feature: Member reviews plans and starts a contribution (`features/STORY-101/ios
 |---|---|---|---|---|---|
 | the login screen is displayed | accepted | rules | assertVisible | `login-screen` | src/screens/LoginScreen.tsx:10 |
 | I enter username "member.entitled" | accepted | rules | type | `login-username-input` | src/screens/LoginScreen.tsx:12 |
-| I enter password "Passw0rd!" | accepted | rules | type | `login-password-input` | src/screens/LoginScreen.tsx:19 |
-| I tap Log In | accepted | rules | tap | `login-submit-button` | src/screens/LoginScreen.tsx:24 |
+| I enter password "Passw0rd!" | accepted | rules | type | `login-password-input` | src/screens/LoginScreen.tsx:21 |
+| I tap Log In | accepted | rules | tap | `login-submit-button` | src/screens/LoginScreen.tsx:26 |
 | the dashboard is displayed | accepted | rules | assertVisible | `dashboard-screen` | src/screens/DashboardScreen.tsx:9 |
 | I tap View Plans | accepted | rules | tap | `dashboard-view-plans-button` | src/screens/DashboardScreen.tsx:12 |
 | plan "p1" shows the Active badge | accepted | rules | assertVisible | `plan-item-entitled-badge-p1` | src/screens/PlanListScreen.tsx:27 |
