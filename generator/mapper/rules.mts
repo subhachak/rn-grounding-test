@@ -6,6 +6,7 @@
 // test, while an unmatched step only costs one agent proposal.
 import { evidence } from '../registry.mts';
 import { TAPPABLE, type Action, type MappingInput, type Proposal, type RegistryFinding } from '../types.mts';
+import { adapterFor } from '../vendors.mts';
 
 export type Match = { proposal: Proposal } | { unresolved: string };
 
@@ -55,7 +56,7 @@ function propose(step: string, action: Action, f: RegistryFinding, extra: Partia
   if (f.category === 'missing') {
     // Matched an element that has no locator: a confirmed testability gap.
     // Keep what the step meant to do so a validated fallback can do it.
-    const intent = action === 'back' || action === 'unmapped' ? null : action;
+    const intent = action === 'back' || action === 'unmapped' || action === 'choose' ? null : action;
     return { proposal: { ...base, action: 'unmapped', locator: null, gap: evidence(f), intent } };
   }
   return { proposal: { ...base, locator: f.value, gap: null } };
@@ -75,6 +76,7 @@ const BACK = /^I (?:press|tap|use) (?:the )?(?:device |hardware |system )?back b
 const RECORD_ASSERT = /^(?:the )?(\w+) "([^"]+)" (?:shows|displays|has) (?:the |an? )?(.+)$/;
 const RECORD_TAP = /^I (?:tap|open|select) (?:the )?(\w+) "([^"]+)"$/;
 const TYPE = /^I (?:enter|type|fill in) (?:the )?(.+?) "([^"]*)"$/;
+const CHOOSE = /^I (?:choose|select|pick|set) "([^"]+)" (?:in|on|with|as) (?:the )?(.+)$/;
 const TAP = /^I (?:tap|press|click|select|open) (?:on )?(?:the )?(.+?)(?: button)?$/;
 const SHOWN = /^(?:the )?(.+?) (?:is|are) (not )?(?:displayed|shown|visible)$/;
 
@@ -96,6 +98,15 @@ export function matchStep(step: string, input: MappingInput): Match {
     const target = resolve(isTap ? entity : `${entity} ${what}`, candidates, !isTap);
     if ('unresolved' in target) return target;
     return propose(step, isTap ? 'tap' : 'assertVisible', target.finding, { record }, `${record} fills ${target.finding.value}`);
+  }
+
+  // Only vendor components with an adapter can take a chosen value, so they
+  // are the only candidates ("the date picker" is not its label or screen).
+  if ((m = step.match(CHOOSE))) {
+    const [, value, what] = m;
+    const target = resolve(what, located.filter((f) => adapterFor(f.module)), false);
+    if ('unresolved' in target) return target;
+    return propose(step, 'choose', target.finding, { text: value }, `${target.finding.element} from ${target.finding.module}`);
   }
 
   if ((m = step.match(TYPE))) {

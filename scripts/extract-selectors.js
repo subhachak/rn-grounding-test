@@ -141,10 +141,21 @@ function extractFromFile(filePath) {
 
   const screenName = path.basename(filePath).replace(/\.(jsx?|tsx?)$/, '');
 
+  // Which package each imported JSX name comes from, so a vendor component
+  // (e.g. DateTimePicker from @react-native-community/datetimepicker) can be
+  // matched to a vendor adapter by package rather than by local name.
+  const importedFrom = {};
+  for (const node of ast.program.body) {
+    if (node.type !== 'ImportDeclaration') continue;
+    for (const spec of node.specifiers) importedFrom[spec.local.name] = node.source.value;
+  }
+
   traverse(ast, {
     JSXElement(elementPath) {
       const opening = elementPath.node.openingElement;
       const elementName = jsxName(opening.name);
+      const module = importedFrom[elementName.split('.')[0]];
+      const vendor = module && module !== 'react-native' ? { module } : {};
       const conditions = collectConditions(elementPath, code);
       let hasLocator = false;
       let hasSpreadProps = false;
@@ -183,6 +194,7 @@ function extractFromFile(filePath) {
           // containers would report their first child's text, which says
           // nothing about the container itself
           description: /View$/.test(elementName) ? null : describeElement(elementPath.node),
+          ...vendor,
           file: filePath,
           line: attr.loc.start.line,
         });

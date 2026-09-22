@@ -41,16 +41,6 @@
       "intent": "type",
       "author": "human",
       "rationale": "QA mapping: the Frequency (monthly/annual) field, which has no testID"
-    },
-    "I choose \"2026-10-01\" in the date picker": {
-      "action": "unmapped",
-      "locator": null,
-      "record": null,
-      "text": null,
-      "gap": null,
-      "intent": null,
-      "author": "human",
-      "rationale": "QA mapping: the vendor date picker exposes nothing in app source; needs a vendor-supported locator"
     }
   }
 }

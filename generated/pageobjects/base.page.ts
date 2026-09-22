@@ -83,3 +83,33 @@ export async function typeText(el: Element, text: string) {
   }
   throw new Error(`typed "${text}" but the field shows "${got}" after 3 attempts`);
 }
+
+// Vendor adapter for @react-native-community/datetimepicker (display
+// "spinner"). Its native wheels are invisible to static extraction; on iOS
+// they are three XCUIElementTypePickerWheel children, month / day / year in
+// the en_US order the simulator uses. Sets each wheel, then reads them back.
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+export async function chooseDate(el: Element, isoDate: string) {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  if (!driver.isIOS) throw new Error('chooseDate: the Android adapter for datetimepicker is not implemented yet');
+  await el.waitForExist({ timeout: 15000 });
+  const wheels = await el.$$('-ios class chain:**/XCUIElementTypePickerWheel');
+  if ((await wheels.length) !== 3) throw new Error(`chooseDate: expected 3 picker wheels, found ${await wheels.length}`);
+  const want = [MONTHS[month - 1], String(day), String(year)];
+  // Wheels coast after a spin, and a month or year change can shift the day,
+  // so set year, month, then day, let them settle, read back, and re-set any
+  // wheel that drifted (a first run landed on the 3rd instead of the 1st).
+  // A wheel's value is the item text, sometimes followed by ", n of m".
+  const shows = (v: string, w: string) => v === w || v.startsWith(`${w},`);
+  let got: string[] = [];
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    for (const i of [2, 0, 1]) {
+      if (!shows(String(await wheels[i].getAttribute('value')), want[i])) await wheels[i].setValue(want[i]);
+    }
+    await driver.pause(500);
+    got = await Promise.all([0, 1, 2].map(async (i) => String(await wheels[i].getAttribute('value'))));
+    if (got.every((v, i) => shows(v, want[i]))) return;
+  }
+  throw new Error(`chooseDate: wanted ${want.join(' ')}, the wheels show ${got.join(' ')}`);
+}

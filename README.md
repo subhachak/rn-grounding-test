@@ -149,8 +149,24 @@ in two deterministic ways, neither of which guesses:
    `fallbacks/validations.json` (audit evidence); a changed selector needs
    validating again. Unvalidated or failed fallbacks stay `pending`.
 
-Gaps with no visible text or placeholder, and vendor components (the date
-picker), get no fallback and stay `pending` with the reason.
+Gaps with no visible text or placeholder get no fallback and stay
+`pending` with the reason.
+
+### Vendor components: adapters for what static extraction cannot see
+
+The contribution date picker is a real vendor component
+(`@react-native-community/datetimepicker`). The testID we pass it is
+extracted like any other, and the extractor records the package each
+element is imported from, but the native wheels inside it are invisible to
+a source scan. `generator/vendors.mts` is a small, reviewed catalog mapping a
+vendor package to an adapter helper in `base.page.ts` (`chooseDate`), which
+operates the internals and reads them back. The rules map
+`I choose "2026-10-01" in the date picker` to a `choose` action; the gate
+(G10) allows `choose` only on an element from a package with an adapter,
+with a value in that adapter's format. The iOS adapter sets year, month,
+then day and re-sets any wheel that drifted (a first run landed on the 3rd
+instead of the 1st, which its read-back caught). The Android adapter is not
+implemented yet; no Android scenario uses the picker.
 
 Steps the rules cannot map can also be mapped by a QA engineer in
 `features/<story>/proposals.json` with `"author": "human"` (reported as
@@ -158,10 +174,11 @@ Steps the rules cannot map can also be mapped by a QA engineer in
 never overwrites a human mapping, and both go through the same gate.
 
 The CLI exits 2 when the gate rejected a mapping or a scenario failed G5.
-For STORY-101 the rules map 21 of 24 Android steps and 23 of 26 iOS steps.
-The rest are QA-mapped in `proposals.json` (Copilot Free cannot run the
-agent yet), and every scenario runs on device except the vendor date-picker
-step: Android 49/49, iOS 47 passed with that 1 pending.
+For STORY-101 the rules map 21 of 24 Android steps and 24 of 26 iOS steps.
+The remaining step per platform ("I open the contribution form") is
+QA-mapped in `proposals.json` (Copilot Free cannot run the agent yet), and
+every scenario runs on device with nothing pending: Android 49/49, iOS
+49/49.
 
 ### Running the generated tests
 

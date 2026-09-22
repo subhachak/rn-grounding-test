@@ -131,3 +131,17 @@ test('G5 evaluates record-gated locators against the bound record', () => {
   assert.deepEqual(scenarioCheck(['@persona:entitled'], [badge('rows.a')]), []);
   assert.deepEqual(scenarioCheck(['@persona:entitled'], [badge('rows.b')]), ['G5']);
 });
+
+test('G10 allows choose only on a vendor component with an adapter, in its value format', () => {
+  const vendorRegistry: RegistryFinding[] = [
+    ...registry,
+    finding({ value: 'date-picker', element: 'DateTimePicker', module: '@react-native-community/datetimepicker', line: 20 }),
+    finding({ value: 'other-picker', element: 'FancyPicker', module: 'some-unknown-lib', line: 21 }),
+  ];
+  const choose = (locator: string, text: string) =>
+    decideStep(propose({ action: 'choose', locator, text }), vendorRegistry, testData);
+  assert.equal(choose('date-picker', '2026-10-01').verdict, 'accepted');
+  assert.deepEqual(rules(choose('date-picker', 'next Friday')), ['G10']);
+  assert.deepEqual(rules(choose('other-picker', '2026-10-01')), ['G10']);
+  assert.deepEqual(rules(choose('submit-button', '2026-10-01')), ['G10']);
+});

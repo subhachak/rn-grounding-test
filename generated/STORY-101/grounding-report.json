@@ -1775,7 +1775,7 @@
         "locator": {
           "attribute": "testID",
           "id": "contribution-date-picker-screen",
-          "evidence": "src/screens/ThirdPartyWidgetScreen.tsx:10",
+          "evidence": "src/screens/ThirdPartyWidgetScreen.tsx:15",
           "conditions": []
         },
         "gap": null,
@@ -1786,17 +1786,21 @@
         "step": "I choose \"2026-10-01\" in the date picker",
         "proposal": {
           "step": "I choose \"2026-10-01\" in the date picker",
-          "action": "unmapped",
-          "locator": null,
+          "action": "choose",
           "record": null,
-          "text": null,
-          "gap": null,
-          "intent": null,
-          "rationale": "QA mapping: the vendor date picker exposes nothing in app source; needs a vendor-supported locator",
-          "source": "human"
+          "text": "2026-10-01",
+          "rationale": "DateTimePicker from @react-native-community/datetimepicker",
+          "source": "rules",
+          "locator": "contribution-date-picker",
+          "gap": null
         },
-        "verdict": "ungrounded",
-        "locator": null,
+        "verdict": "accepted",
+        "locator": {
+          "attribute": "testID",
+          "id": "contribution-date-picker",
+          "evidence": "src/screens/ThirdPartyWidgetScreen.tsx:18",
+          "conditions": []
+        },
         "gap": null,
         "errors": [],
         "warnings": []

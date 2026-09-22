@@ -2,7 +2,7 @@
 // fix the feature, test data, or app testIDs and regenerate.
 import { Given, When, Then } from '@wdio/cucumber-framework';
 import { driver } from '@wdio/globals';
-import { expectShown, expectHidden, typeText } from '../../pageobjects/base.page';
+import { expectShown, expectHidden, typeText, chooseDate } from '../../pageobjects/base.page';
 import AccountSummaryPage from '../../pageobjects/account-summary.page';
 import ContributionFormPage from '../../pageobjects/contribution-form.page';
 import DashboardPage from '../../pageobjects/dashboard.page';
@@ -117,14 +117,14 @@ When(/^I open the contribution schedule$/, async () => {
 });
 
 Then(/^the contribution date picker is displayed$/, async () => {
-  // testID=contribution-date-picker-screen (src/screens/ThirdPartyWidgetScreen.tsx:10), proposed by rule match
+  // testID=contribution-date-picker-screen (src/screens/ThirdPartyWidgetScreen.tsx:15), proposed by rule match
   await expectShown(ThirdPartyWidgetPage.root, { container: true });
 });
 
 When(/^I choose "2026-10-01" in the date picker$/, async () => {
-  // UNGROUNDED: QA mapping: the vendor date picker exposes nothing in app source; needs a vendor-supported locator
-  // no source evidence
-  return 'pending';
+  // testID=contribution-date-picker (src/screens/ThirdPartyWidgetScreen.tsx:18), proposed by rule match
+  // vendor adapter for @react-native-community/datetimepicker (base.page.ts chooseDate)
+  await chooseDate(ThirdPartyWidgetPage.contributionDatePicker, "2026-10-01");
 });
 
 When(/^I tap Account Summary$/, async () => {

@@ -3,14 +3,24 @@
 import Page from './base.page';
 
 class ThirdPartyWidgetPage extends Page {
-  // testID=contribution-date-picker-screen (src/screens/ThirdPartyWidgetScreen.tsx:10)
+  // testID=contribution-date-picker-screen (src/screens/ThirdPartyWidgetScreen.tsx:15)
   get root() {
     return this.byTestId("contribution-date-picker-screen");
   }
 
-  // testID=contribution-date-picker-label (src/screens/ThirdPartyWidgetScreen.tsx:11)
+  // testID=contribution-date-picker-label (src/screens/ThirdPartyWidgetScreen.tsx:16)
   get contributionDatePickerLabel() {
     return this.byTestId("contribution-date-picker-label");
+  }
+
+  // testID=contribution-date-picker (src/screens/ThirdPartyWidgetScreen.tsx:18)
+  get contributionDatePicker() {
+    return this.byTestId("contribution-date-picker");
+  }
+
+  // testID=contribution-date-picker-value (src/screens/ThirdPartyWidgetScreen.tsx:24)
+  get contributionDatePickerValue() {
+    return this.byTestId("contribution-date-picker-value");
   }
 }
 

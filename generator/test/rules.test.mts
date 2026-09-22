@@ -81,3 +81,16 @@ test('anything short of exactly one candidate is left for the agent', () => {
   unresolved('I swipe to the next page'); // no rule for the phrasing
   unresolved('I enter title "x"'); // no TextInput named title
 });
+
+test('choose steps map only to vendor components that have an adapter', () => {
+  const withPicker = [
+    ...registry,
+    f({ value: 'home-date-picker', element: 'DateTimePicker', module: '@react-native-community/datetimepicker', line: 20 }),
+    f({ value: 'home-date-label', element: 'Text', description: 'Pick a date', line: 21 }),
+  ];
+  const m = matchStep('I choose "2026-10-01" in the date picker', input(withPicker));
+  assert.ok('proposal' in m);
+  assert.deepEqual([m.proposal.action, m.proposal.locator, m.proposal.text], ['choose', 'home-date-picker', '2026-10-01']);
+  // Without a vendor component, "the date picker" is left for the agent.
+  assert.ok('unresolved' in matchStep('I choose "2026-10-01" in the date picker', input(registry)));
+});

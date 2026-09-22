@@ -5,6 +5,7 @@
 import path from 'node:path';
 import { importPath, memberCall, type PageMember, type PageModel } from './pageobjects.mts';
 import type { Platform, PlatformResult, StepDecision, StepKind, TestData } from './types.mts';
+import { VENDOR_ADAPTERS, adapterFor } from './vendors.mts';
 
 const KEYWORD: Record<StepKind, string> = { context: 'Given', action: 'When', outcome: 'Then' };
 
@@ -20,13 +21,14 @@ function recordOf(testData: TestData, ref: string | null): Record<string, unknow
   return testData.records[collection]?.[key];
 }
 
-const act = (intent: string, el: string, text: string | null, opts = '') =>
+const act = (intent: string, el: string, text: string | null, opts = '', helper = '') =>
   ({
     tap: `await ${el}.click();`,
+    choose: `await ${helper}(${el}, ${JSON.stringify(text)});`,
     type: `await typeText(${el}, ${JSON.stringify(text)});`,
     assertVisible: `await expectShown(${el}${opts});`,
     assertNotVisible: `await expectHidden(${el}${opts});`,
-  })[intent as 'tap' | 'type' | 'assertVisible' | 'assertNotVisible'];
+  })[intent as 'tap' | 'type' | 'choose' | 'assertVisible' | 'assertNotVisible'];
 
 // A gap step acts through its fallback member only once a device run has
 // validated that fallback on this platform. Unvalidated, it runs only in a
@@ -79,7 +81,9 @@ function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: 
     `// ${loc.attribute}=${loc.id} (${loc.evidence}), ${by}`,
     ...d.warnings.map((w) => `// WARNING ${w.rule}: ${w.message}`),
   ];
-  return [...notes, act(p.action, el, p.text, opts)];
+  const helper = p.action === 'choose' ? adapterFor(member.finding.module)!.helper : '';
+  if (helper) notes.push(`// vendor adapter for ${member.finding.module} (base.page.ts ${helper})`);
+  return [...notes, act(p.action, el, p.text, opts, helper)];
 }
 
 export function generateSteps(
@@ -110,7 +114,13 @@ export function generateSteps(
     `// fix the feature, test data, or app testIDs and regenerate.`,
     `import { Given, When, Then } from '@wdio/cucumber-framework';`,
     ...(defs.some((l) => l.includes('driver.')) ? [`import { driver } from '@wdio/globals';`] : []),
-    `import { expectShown, expectHidden, typeText${defs.some((l) => l.includes('validateFallback(')) ? ', validateFallback' : ''} } from '${importPath(stepsDir, pageObjectsDir, 'base.page')}';`,
+    `import { ${[
+      'expectShown',
+      'expectHidden',
+      'typeText',
+      ...(defs.some((l) => l.includes('validateFallback(')) ? ['validateFallback'] : []),
+      ...[...new Set(Object.values(VENDOR_ADAPTERS).map((a) => a.helper))].filter((h) => defs.some((l) => l.includes(`${h}(`))),
+    ].join(', ')} } from '${importPath(stepsDir, pageObjectsDir, 'base.page')}';`,
     ...[...pagesUsed].sort().map((f) => `import ${classOf.get(f)} from '${importPath(stepsDir, pageObjectsDir, f)}';`),
     '',
     ...defs,

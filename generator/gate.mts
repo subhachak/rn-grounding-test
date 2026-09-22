@@ -16,8 +16,11 @@
 //   G8  type needs text; nothing else may carry text
 //   G9  an unmapped step's intent must fit the gap it cites (type on a
 //       TextInput, tap on a touchable) for a fallback to act on it
+//   G10 choose targets a vendor component with a registered adapter, with a
+//       value in that adapter's format
 import { Unverifiable, evaluateCondition, resolveTemplate } from './conditions.mts';
 import { evidence } from './registry.mts';
+import { adapterFor } from './vendors.mts';
 import {
   TAPPABLE,
   type FeatureDoc,
@@ -29,7 +32,7 @@ import {
   type TestData,
 } from './types.mts';
 
-const NEEDS_LOCATOR = new Set(['tap', 'type', 'assertVisible', 'assertNotVisible']);
+const NEEDS_LOCATOR = new Set(['tap', 'type', 'choose', 'assertVisible', 'assertNotVisible']);
 
 function lookupRecord(testData: TestData, ref: string): Record<string, unknown> | undefined {
   const [collection, key] = ref.split('.');
@@ -71,8 +74,9 @@ export function decideStep(p: Proposal, registry: RegistryFinding[], testData: T
     return { ...d, gap };
   }
 
-  if (p.action === 'type' ? !p.text : p.text !== null) {
-    errors.push({ rule: 'G8', message: p.action === 'type' ? 'type has no text' : `${p.action} carries text` });
+  const needsText = p.action === 'type' || p.action === 'choose';
+  if (needsText ? !p.text : p.text !== null) {
+    errors.push({ rule: 'G8', message: needsText ? `${p.action} has no text` : `${p.action} carries text` });
   }
 
   if (!NEEDS_LOCATOR.has(p.action)) {
@@ -98,6 +102,14 @@ export function decideStep(p: Proposal, registry: RegistryFinding[], testData: T
   }
   if (p.action === 'tap' && !TAPPABLE.has(found.element)) {
     errors.push({ rule: 'G3', message: `tap on a ${found.element}, which is not interactive` });
+  }
+  if (p.action === 'choose') {
+    const adapter = adapterFor(found.module);
+    if (!adapter) {
+      errors.push({ rule: 'G10', message: `no vendor adapter for ${found.element}${found.module ? ` from ${found.module}` : ''}` });
+    } else if (p.text && !adapter.value.test(p.text)) {
+      errors.push({ rule: 'G10', message: `"${p.text}" is not ${adapter.valueHint}` });
+    }
   }
 
   let id = found.value as string;

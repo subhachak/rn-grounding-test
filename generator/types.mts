@@ -41,6 +41,7 @@ export interface RegistryFinding {
   conditions: string[];
   description?: string | null;
   hasSpreadProps?: boolean;
+  module?: string; // package the element is imported from, when not react-native
   file: string;
   line: number;
 }
@@ -56,7 +57,8 @@ export interface TestData {
   records: Record<string, Record<string, Record<string, unknown>>>;
 }
 
-export const ACTIONS = ['tap', 'type', 'assertVisible', 'assertNotVisible', 'back', 'unmapped'] as const;
+// choose: set a vendor component's value through its adapter (vendors.mts).
+export const ACTIONS = ['tap', 'type', 'choose', 'assertVisible', 'assertNotVisible', 'back', 'unmapped'] as const;
 export type Action = (typeof ACTIONS)[number];
 
 export const TAPPABLE = new Set([
@@ -88,7 +90,7 @@ export interface Proposal {
   source: ProposalSource;
   // For an unmapped step that names a testability gap: what the step meant to
   // do there, so a device-validated fallback locator can carry it out.
-  intent?: Exclude<Action, 'back' | 'unmapped'> | null;
+  intent?: Exclude<Action, 'back' | 'unmapped' | 'choose'> | null;
 }
 
 export interface MappingInput {
@@ -98,7 +100,7 @@ export interface MappingInput {
   testData: TestData;
 }
 
-export type RuleId = 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'G6' | 'G7' | 'G8' | 'G9';
+export type RuleId = 'G1' | 'G2' | 'G3' | 'G4' | 'G5' | 'G6' | 'G7' | 'G8' | 'G9' | 'G10';
 
 export interface Finding {
   rule: RuleId;

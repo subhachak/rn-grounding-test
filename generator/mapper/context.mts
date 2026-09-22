@@ -4,10 +4,10 @@
 import type { MappingInput } from '../types.mts';
 
 export const MAPPING_RULES = `For each step, propose:
-- action: tap | type | assertVisible | assertNotVisible | back | unmapped
+- action: tap | type | choose | assertVisible | assertNotVisible | back | unmapped (choose sets a vendor component's value, e.g. a date picker; the LOCATORS table marks those with their package)
 - locator: copy a value from LOCATORS exactly as written, including braces and backticks for templated values. Never construct, shorten, or guess a locator.
 - record: for a templated locator only, the RECORDS key that fills it ("collection.key"). Otherwise null.
-- text: the literal text to enter, for type only. Otherwise null.
+- text: the literal text to enter for type, or the value for choose (a date as YYYY-MM-DD). Otherwise null.
 - gap: when the step targets an element listed under GAPS, its location (file:line). Otherwise null.
 - intent: with a gap only, what the step does to that element (tap | type | assertVisible | assertNotVisible), with text for type. Otherwise null.
 - rationale: one short sentence naming the evidence (visible text, screen, element).
@@ -18,7 +18,7 @@ export function renderContext(input: MappingInput, reasons: Record<string, strin
   const locators = input.registry
     .filter((f) => f.category !== 'missing')
     .map((f) =>
-      [f.value, f.screen, f.element, f.attribute, f.category, f.description ?? '-', f.conditions.join(' && ') || '-'].join('\t'),
+      [f.value, f.screen, f.module ? `${f.element} (${f.module})` : f.element, f.attribute, f.category, f.description ?? '-', f.conditions.join(' && ') || '-'].join('\t'),
     );
   const gaps = input.registry
     .filter((f) => f.category === 'missing')
