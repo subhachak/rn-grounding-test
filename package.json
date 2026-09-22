@@ -9,7 +9,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "ground": "node scripts/extract-selectors.js ./src",
-    "ground:save": "node scripts/extract-selectors.js ./src > registry.json && echo 'Wrote registry.json'"
+    "ground:save": "node scripts/extract-selectors.js ./src > registry.json && echo 'Wrote registry.json'",
+    "generate": "node generator/cli.mts",
+    "test:generator": "node --test \"generator/test/*.test.mts\"",
+    "typecheck:generator": "tsc -p generator && tsc -p generated"
   },
   "dependencies": {
     "@react-navigation/native": "^6.1.17",
@@ -25,8 +28,17 @@
     "@babel/core": "^7.24.0",
     "@babel/parser": "^7.24.0",
     "@babel/traverse": "^7.24.0",
+    "@cucumber/gherkin": "^42.0.1",
+    "@cucumber/messages": "^34.2.1",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@types/node": "^26.6.2",
     "@types/react": "~18.2.79",
+    "@wdio/cli": "^9.32.0",
+    "@wdio/cucumber-framework": "^9.32.0",
+    "@wdio/globals": "^9.31.3",
+    "@wdio/local-runner": "^9.32.0",
+    "@wdio/sauce-service": "^9.32.0",
+    "@wdio/spec-reporter": "^9.32.0",
     "babel-preset-expo": "~11.0.0",
     "typescript": "^5.3.0",
     "zod": "^3.25.76"

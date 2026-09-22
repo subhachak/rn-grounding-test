@@ -32,6 +32,10 @@ src/screens/
                                    we can't see inside
 
 scripts/extract-selectors.js   the AST extraction script
+features/<story>/              android.feature + ios.feature per story, plus the agent's proposals.json once it has run
+test-data/testdata.json        personas and records the gate resolves conditions and templates against
+generator/                     feature -> grounded WebdriverIO + Cucumber generator (see below)
+generated/<story>/             generated step definitions, Sauce Labs configs, grounding report
 scripts/mcp-server.js          exposes the script as an MCP tool (ground_selectors)
 .vscode/mcp.json               registers that MCP server with VS Code
 .github/agents/selector-grounding.agent.md  Copilot custom agent using that tool
@@ -61,6 +65,61 @@ e.g. "which elements are missing testIDs?". The agent can only call the
 full JSON, and runs on the cheapest available model, to keep AI credit use
 low. The first time, VS Code asks you to trust/start the MCP server from
 `.vscode/mcp.json`.
+
+## Generating Appium tests from feature files
+
+Each story has one feature file per platform under `features/<story>/`
+(`android.feature`, `ios.feature`). The output is WebdriverIO + Cucumber
+step definitions and a Sauce Labs config per platform, in
+`generated/<story>/`.
+
+```bash
+npm run generate -- features/STORY-101
+npm run test:generator
+npm run typecheck:generator
+```
+
+`npm run generate` is fully deterministic and needs no AI. GitHub Copilot is
+the only AI involved, and only for steps the rules cannot match.
+
+### How a step is decided
+
+1. **Parse** both feature files with the Gherkin parser (outlines expanded,
+   Background inlined).
+2. **Match by rules** (`generator/mapper/rules.mts`). A step is mapped only
+   when its phrasing names exactly one element in source evidence: visible
+   text or placeholder (`I tap Log In`), the words of a testID
+   (`the login screen is displayed`), or a test-data record
+   (`I open plan "p1"`). Naming an element that has no testID
+   (`I tap Cancel`) becomes a cited testability gap. Anything ambiguous or
+   unmatched is left for the agent rather than guessed.
+3. **Copilot agent, for the leftovers only.** `/generate-appium STORY-101`
+   in Copilot Chat (agent **Appium Test Generator**) sees just the unmatched
+   steps via `get_mapping_context`, and submits proposals via
+   `submit_proposals`, which saves them to `features/<story>/proposals.json`.
+   An agent proposal can never override a rule match. If the rules match
+   everything, the agent makes no model call at all. Until the agent has
+   run, the leftovers are generated as `pending` steps marked "awaiting the
+   Copilot agent".
+4. **Gate** (`generator/gate.mts`, rules G1 to G8) checks every mapping,
+   from rules or agent, against a fresh scan of `src/` and
+   `test-data/testdata.json`: the locator must exist verbatim, templated IDs
+   must resolve from a named record, persona-gated locators must actually
+   render for the scenario's `@persona:` tag, and so on.
+5. **Generate** `generated/<story>/<platform>/steps.ts`,
+   `wdio.<platform>.conf.ts`, and `grounding-report.md`. Accepted steps get
+   the concrete selector, the source line, and whether rules or the agent
+   proposed it. Rejected and ungrounded steps are generated as `pending`
+   with the reason, so a gap shows up in the run rather than as a guessed
+   locator.
+
+The CLI exits 2 when the gate rejected a mapping or a scenario failed G5.
+For STORY-101 the rules map 21 of 24 Android steps and 22 of 26 iOS steps;
+2 and 4 steps are left for the agent.
+
+To run on Sauce Labs: set `SAUCE_USERNAME`, `SAUCE_ACCESS_KEY`, and
+`SAUCE_APP_ANDROID` / `SAUCE_APP_IOS`, then
+`npx wdio run generated/STORY-101/wdio.ios.conf.ts`.
 
 ## Running the actual app (needs your machine, not this sandbox)
 

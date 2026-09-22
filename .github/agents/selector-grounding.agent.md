@@ -5,7 +5,7 @@ argument-hint: e.g. "which elements are missing testIDs?" or "what needs live va
 tools: ['selector-grounding/ground_selectors']
 # Cheapest first. MAI-Code-1.1-Flash is left out: Copilot sends it a
 # tool_search tool its API rejects ("not supported with gpt-5").
-model: ['GPT-5.6 Luna', 'Claude Haiku 4.5', 'GPT-5 mini']
+model: ['GPT-5.6 Luna', 'GPT-5 mini']
 ---
 
 Answer only from the `ground_selectors` tool output. It is a deterministic AST scan of the RN source; never guess or invent a locator.

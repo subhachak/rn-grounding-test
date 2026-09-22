@@ -180,6 +180,9 @@ function extractFromFile(filePath) {
           value,
           locatorStrength: LOCATOR_STRENGTH[name],
           conditions,
+          // containers would report their first child's text, which says
+          // nothing about the container itself
+          description: /View$/.test(elementName) ? null : describeElement(elementPath.node),
           file: filePath,
           line: attr.loc.start.line,
         });

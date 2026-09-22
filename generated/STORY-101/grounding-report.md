@@ -1,0 +1,69 @@
+# Grounding report: STORY-101
+
+## android
+
+Feature: Member reviews plans and starts a contribution (`features/STORY-101/android.feature`).
+
+24 unique steps: 21 accepted (21 by rules, 0 by the Copilot agent), 0 rejected, 3 ungrounded (2 awaiting the agent), 1 warnings. 0 scenario-level (G5) errors.
+
+| Step | Verdict | Source | Action | Locator | Evidence / reason |
+|---|---|---|---|---|---|
+| the login screen is displayed | accepted | rules | assertVisible | `login-screen` | src/screens/LoginScreen.tsx:7 |
+| I enter username "member.entitled" | accepted | rules | type | `login-username-input` | src/screens/LoginScreen.tsx:8 |
+| I enter password "Passw0rd!" | accepted | rules | type | `login-password-input` | src/screens/LoginScreen.tsx:9 |
+| I tap Log In | accepted | rules | tap | `login-submit-button` | src/screens/LoginScreen.tsx:13 |
+| the dashboard is displayed | accepted | rules | assertVisible | `dashboard-screen` | src/screens/DashboardScreen.tsx:9 |
+| I tap View Plans | accepted | rules | tap | `dashboard-view-plans-button` | src/screens/DashboardScreen.tsx:12 |
+| plan "p1" shows the Active badge | accepted | rules | assertVisible | `plan-item-entitled-badge-p1` | src/screens/PlanListScreen.tsx:27 |
+| I open plan "p1" | accepted | rules | tap | `plan-item-p1` | src/screens/PlanListScreen.tsx:22 |
+| the plan contribution amount is displayed | accepted | rules | assertVisible | `plan-details-contribution-amount` | src/screens/PlanDetailsScreen.tsx:14 |
+| the upgrade prompt is not displayed | accepted | rules | assertNotVisible | `plan-details-upgrade-prompt` | src/screens/PlanDetailsScreen.tsx:18 |
+| I enter username "member.restricted" | accepted | rules | type | `login-username-input` | src/screens/LoginScreen.tsx:8 |
+| plan "p2" shows the Restricted badge | accepted | rules | assertVisible | `plan-item-restricted-badge-p2` | src/screens/PlanListScreen.tsx:29 |
+| I open plan "p2" | accepted | rules | tap | `plan-item-p2` | src/screens/PlanListScreen.tsx:22 |
+| the upgrade prompt is displayed | accepted | rules | assertVisible | `plan-details-upgrade-prompt` | src/screens/PlanDetailsScreen.tsx:18 |
+| the plan contribution amount is not displayed | accepted | rules | assertNotVisible | `plan-details-contribution-amount` | src/screens/PlanDetailsScreen.tsx:14 |
+| I open the contribution form | ungrounded | none | unmapped | - | no source evidence: no rule match (nothing in the registry matches "contribution form"); awaiting the Copilot agent (/generate-appium) |
+| the contribution form is displayed | accepted | rules | assertVisible | `contribution-form-screen` | src/screens/ContributionFormScreen.tsx:9 |
+| I enter contribution amount "500" | accepted | rules | type | `contribution-amount-input` | src/screens/ContributionFormScreen.tsx:10 |
+| I enter contribution frequency "monthly" | ungrounded | none | unmapped | - | no source evidence: no rule match (nothing in the registry matches "contribution frequency"); awaiting the Copilot agent (/generate-appium) |
+| I tap Submit | accepted | rules | tap | `contribution-submit-button` | src/screens/ContributionFormScreen.tsx:13 |
+| I tap Cancel | ungrounded | rules | unmapped | - | gap at src/screens/ContributionFormScreen.tsx:17: TouchableOpacity "Cancel" |
+| I tap Account Summary | accepted | rules | tap | `dashboard-view-account-button` | src/screens/DashboardScreen.tsx:18 |
+| the account balance is displayed | accepted | rules | assertVisible | `account-balance-text` | src/screens/AccountSummaryScreen.tsx:10; G6 accessibilityLabel only; ask for a testID |
+| I press the device back button | accepted | rules | back | - | no locator needed |
+
+## ios
+
+Feature: Member reviews plans and starts a contribution (`features/STORY-101/ios.feature`).
+
+26 unique steps: 22 accepted (22 by rules, 0 by the Copilot agent), 0 rejected, 4 ungrounded (4 awaiting the agent), 1 warnings. 0 scenario-level (G5) errors.
+
+| Step | Verdict | Source | Action | Locator | Evidence / reason |
+|---|---|---|---|---|---|
+| the login screen is displayed | accepted | rules | assertVisible | `login-screen` | src/screens/LoginScreen.tsx:7 |
+| I enter username "member.entitled" | accepted | rules | type | `login-username-input` | src/screens/LoginScreen.tsx:8 |
+| I enter password "Passw0rd!" | accepted | rules | type | `login-password-input` | src/screens/LoginScreen.tsx:9 |
+| I tap Log In | accepted | rules | tap | `login-submit-button` | src/screens/LoginScreen.tsx:13 |
+| the dashboard is displayed | accepted | rules | assertVisible | `dashboard-screen` | src/screens/DashboardScreen.tsx:9 |
+| I tap View Plans | accepted | rules | tap | `dashboard-view-plans-button` | src/screens/DashboardScreen.tsx:12 |
+| plan "p1" shows the Active badge | accepted | rules | assertVisible | `plan-item-entitled-badge-p1` | src/screens/PlanListScreen.tsx:27 |
+| I open plan "p1" | accepted | rules | tap | `plan-item-p1` | src/screens/PlanListScreen.tsx:22 |
+| the plan contribution amount is displayed | accepted | rules | assertVisible | `plan-details-contribution-amount` | src/screens/PlanDetailsScreen.tsx:14 |
+| the upgrade prompt is not displayed | accepted | rules | assertNotVisible | `plan-details-upgrade-prompt` | src/screens/PlanDetailsScreen.tsx:18 |
+| I enter username "member.restricted" | accepted | rules | type | `login-username-input` | src/screens/LoginScreen.tsx:8 |
+| plan "p2" shows the Restricted badge | accepted | rules | assertVisible | `plan-item-restricted-badge-p2` | src/screens/PlanListScreen.tsx:29 |
+| I open plan "p2" | accepted | rules | tap | `plan-item-p2` | src/screens/PlanListScreen.tsx:22 |
+| the upgrade prompt is displayed | accepted | rules | assertVisible | `plan-details-upgrade-prompt` | src/screens/PlanDetailsScreen.tsx:18 |
+| the plan contribution amount is not displayed | accepted | rules | assertNotVisible | `plan-details-contribution-amount` | src/screens/PlanDetailsScreen.tsx:14 |
+| I open the contribution form | ungrounded | none | unmapped | - | no source evidence: no rule match (nothing in the registry matches "contribution form"); awaiting the Copilot agent (/generate-appium) |
+| the contribution form is displayed | accepted | rules | assertVisible | `contribution-form-screen` | src/screens/ContributionFormScreen.tsx:9 |
+| I enter contribution amount "500" | accepted | rules | type | `contribution-amount-input` | src/screens/ContributionFormScreen.tsx:10 |
+| I enter contribution frequency "monthly" | ungrounded | none | unmapped | - | no source evidence: no rule match (nothing in the registry matches "contribution frequency"); awaiting the Copilot agent (/generate-appium) |
+| I tap Submit | accepted | rules | tap | `contribution-submit-button` | src/screens/ContributionFormScreen.tsx:13 |
+| I open the contribution schedule | ungrounded | none | unmapped | - | no source evidence: no rule match (nothing in the registry matches "contribution schedule"); awaiting the Copilot agent (/generate-appium) |
+| the contribution date picker is displayed | accepted | rules | assertVisible | `contribution-date-picker-screen` | src/screens/ThirdPartyWidgetScreen.tsx:10 |
+| I choose "2026-10-01" in the date picker | ungrounded | none | unmapped | - | no source evidence: no rule match (phrasing matches no rule); awaiting the Copilot agent (/generate-appium) |
+| I tap Account Summary | accepted | rules | tap | `dashboard-view-account-button` | src/screens/DashboardScreen.tsx:18 |
+| the account balance is displayed | accepted | rules | assertVisible | `account-balance-text` | src/screens/AccountSummaryScreen.tsx:10; G6 accessibilityLabel only; ask for a testID |
+| I tap the back button in the navigation bar | accepted | rules | back | - | no locator needed |
