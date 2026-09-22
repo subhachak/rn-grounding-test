@@ -20,8 +20,7 @@ const path = require('path');
 const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 
-const SRC_DIR = process.argv[2] || './src';
-const results = [];
+let results = [];
 
 const LOCATOR_STRENGTH = {
   testID: 'strong',
@@ -50,14 +49,20 @@ const INTERACTION_PROPS = new Set([
   'onSubmitEditing',
 ]);
 
+// Skipped so a scan from the repo root only sees app source: dependencies,
+// native/generated build output, hidden dirs (.git, .expo), and tests, whose
+// JSX would otherwise be reported as if it were real UI.
+const SKIP_DIRS = new Set(['node_modules', 'ios', 'android', 'build', 'dist', 'coverage', 'web-build', '__tests__']);
+const TEST_FILE = /\.(test|spec)\.(jsx?|tsx?)$/;
+
 function walkDir(dir) {
   const files = fs.readdirSync(dir);
   for (const file of files) {
     const fullPath = path.join(dir, file);
     const stat = fs.statSync(fullPath);
-    if (stat.isDirectory() && !file.includes('node_modules')) {
-      walkDir(fullPath);
-    } else if (/\.(jsx?|tsx?)$/.test(file)) {
+    if (stat.isDirectory()) {
+      if (!SKIP_DIRS.has(file) && !file.startsWith('.')) walkDir(fullPath);
+    } else if (/\.(jsx?|tsx?)$/.test(file) && !TEST_FILE.test(file)) {
       extractFromFile(fullPath);
     }
   }
@@ -201,20 +206,31 @@ function extractFromFile(filePath) {
   });
 }
 
-walkDir(SRC_DIR);
-
-const summary = {
-  stable: 0,
-  'templated-dynamic': 0,
-  'expression-dynamic': 0,
-  missing: 0,
-  conditional: 0,
-  locatorStrength: { strong: 0, medium: 0, weak: 0 },
-};
-for (const r of results) {
-  summary[r.category] = (summary[r.category] || 0) + 1;
-  if (r.conditions.length) summary.conditional += 1;
-  if (r.locatorStrength) summary.locatorStrength[r.locatorStrength] += 1;
+function summarize(findings) {
+  const summary = {
+    stable: 0,
+    'templated-dynamic': 0,
+    'expression-dynamic': 0,
+    missing: 0,
+    conditional: 0,
+    locatorStrength: { strong: 0, medium: 0, weak: 0 },
+  };
+  for (const r of findings) {
+    summary[r.category] = (summary[r.category] || 0) + 1;
+    if (r.conditions.length) summary.conditional += 1;
+    if (r.locatorStrength) summary.locatorStrength[r.locatorStrength] += 1;
+  }
+  return summary;
 }
 
-console.log(JSON.stringify({ findings: results, summary }, null, 2));
+function extract(srcDir) {
+  results = [];
+  walkDir(srcDir);
+  return { findings: results, summary: summarize(results) };
+}
+
+module.exports = { extract };
+
+if (require.main === module) {
+  console.log(JSON.stringify(extract(process.argv[2] || './src'), null, 2));
+}

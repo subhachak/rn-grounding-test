@@ -32,6 +32,9 @@ src/screens/
                                    we can't see inside
 
 scripts/extract-selectors.js   the AST extraction script
+scripts/mcp-server.js          exposes the script as an MCP tool (ground_selectors)
+.vscode/mcp.json               registers that MCP server with VS Code
+.github/agents/selector-grounding.agent.md  Copilot custom agent using that tool
 .vscode/tasks.json             one-click "Ground Selectors" task
 .github/copilot-instructions.md  repo-level instructions for Copilot Chat/agent
 ```
@@ -48,6 +51,16 @@ Or in VS Code: **Terminal > Run Task > Ground Selectors (AST extraction)**.
 
 This part works anywhere, no simulator or device needed, it's pure
 source analysis.
+
+### From Copilot Chat
+
+Pick **Selector Grounding** in the Copilot Chat agent picker and ask,
+e.g. "which elements are missing testIDs?". The agent can only call the
+`ground_selectors` tool, which returns a compact slice of the registry
+(`summary`, `gaps`, `variants`, `dynamic`, `weak`, or `all`) instead of the
+full JSON, and runs on the cheapest available model, to keep AI credit use
+low. The first time, VS Code asks you to trust/start the MCP server from
+`.vscode/mcp.json`.
 
 ## Running the actual app (needs your machine, not this sandbox)
 

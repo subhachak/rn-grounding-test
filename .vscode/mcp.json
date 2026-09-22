@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "selector-grounding": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/scripts/mcp-server.js"]
+    }
+  }
+}
