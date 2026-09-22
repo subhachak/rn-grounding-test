@@ -87,7 +87,14 @@ const DEVICE: Record<RunTarget, Record<Platform, Record<string, string | number>
     ios: { platformName: 'iOS', 'appium:automationName': 'XCUITest', 'appium:deviceName': 'iPhone.*' },
   },
   local: {
-    android: { platformName: 'Android', 'appium:automationName': 'UiAutomator2', 'appium:deviceName': 'Android Emulator' },
+    // A local emulator sharing a laptop with builds can take longer than
+    // Appium's 20s default for routine adb commands (pm clear timed out).
+    android: {
+      platformName: 'Android',
+      'appium:automationName': 'UiAutomator2',
+      'appium:deviceName': 'Android Emulator',
+      'appium:adbExecTimeout': 60000,
+    },
     // WebDriverAgent is built and launched on the simulator on first use,
     // which outlasts Appium's default wait on a busy machine.
     ios: {
@@ -161,6 +168,9 @@ ${connection}
   },
   reporters: ['spec'],
   maxInstances: 1,
+  // Assertions and element lookups wait up to this long. The 5s default
+  // failed a screen transition on a freshly booted emulator.
+  waitforTimeout: 15000,
   capabilities: [
     {
 ${caps}

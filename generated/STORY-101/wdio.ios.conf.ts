@@ -16,6 +16,9 @@ export const config: WebdriverIO.Config = {
   },
   reporters: ['spec'],
   maxInstances: 1,
+  // Assertions and element lookups wait up to this long. The 5s default
+  // failed a screen transition on a freshly booted emulator.
+  waitforTimeout: 15000,
   capabilities: [
     {
       'platformName': 'iOS',
