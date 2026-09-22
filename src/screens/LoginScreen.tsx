@@ -12,6 +12,7 @@ export default function LoginScreen({ navigation }: any) {
         testID="login-username-input"
         placeholder="Username"
         autoCapitalize="none"
+        autoCorrect={false}
         value={username}
         onChangeText={setUsername}
       />

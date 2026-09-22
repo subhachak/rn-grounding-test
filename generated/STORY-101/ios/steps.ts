@@ -5,7 +5,8 @@ import { $, driver, expect } from '@wdio/globals';
 
 Given(/^the login screen is displayed$/, async () => {
   // testID=login-screen (src/screens/LoginScreen.tsx:10), proposed by rule match
-  await expect($("~login-screen")).toBeDisplayed();
+  // iOS container view: asserts presence, see codegen.mts
+  await expect($("~login-screen")).toBeExisting();
 });
 
 When(/^I enter username "member\.entitled"$/, async () => {
@@ -14,18 +15,19 @@ When(/^I enter username "member\.entitled"$/, async () => {
 });
 
 When(/^I enter password "Passw0rd!"$/, async () => {
-  // testID=login-password-input (src/screens/LoginScreen.tsx:18), proposed by rule match
+  // testID=login-password-input (src/screens/LoginScreen.tsx:19), proposed by rule match
   await $("~login-password-input").setValue("Passw0rd!");
 });
 
 When(/^I tap Log In$/, async () => {
-  // testID=login-submit-button (src/screens/LoginScreen.tsx:23), proposed by rule match
+  // testID=login-submit-button (src/screens/LoginScreen.tsx:24), proposed by rule match
   await $("~login-submit-button").click();
 });
 
 Then(/^the dashboard is displayed$/, async () => {
   // testID=dashboard-screen (src/screens/DashboardScreen.tsx:9), proposed by rule match
-  await expect($("~dashboard-screen")).toBeDisplayed();
+  // iOS container view: asserts presence, see codegen.mts
+  await expect($("~dashboard-screen")).toBeExisting();
 });
 
 When(/^I tap View Plans$/, async () => {
@@ -92,7 +94,8 @@ When(/^I open the contribution form$/, async () => {
 
 Then(/^the contribution form is displayed$/, async () => {
   // testID=contribution-form-screen (src/screens/ContributionFormScreen.tsx:9), proposed by rule match
-  await expect($("~contribution-form-screen")).toBeDisplayed();
+  // iOS container view: asserts presence, see codegen.mts
+  await expect($("~contribution-form-screen")).toBeExisting();
 });
 
 When(/^I enter contribution amount "500"$/, async () => {
@@ -118,7 +121,8 @@ When(/^I open the contribution schedule$/, async () => {
 
 Then(/^the contribution date picker is displayed$/, async () => {
   // testID=contribution-date-picker-screen (src/screens/ThirdPartyWidgetScreen.tsx:10), proposed by rule match
-  await expect($("~contribution-date-picker-screen")).toBeDisplayed();
+  // iOS container view: asserts presence, see codegen.mts
+  await expect($("~contribution-date-picker-screen")).toBeExisting();
 });
 
 When(/^I choose "2026-10-01" in the date picker$/, async () => {

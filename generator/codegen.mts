@@ -41,13 +41,19 @@ function body(platform: Platform, d: StepDecision): string[] {
     ...(loc.conditions.length ? [`// renders only when ${loc.conditions.join(' && ')}`] : []),
     ...d.warnings.map((w) => `// WARNING ${w.rule}: ${w.message}`),
   ];
+  // XCUITest reports RN container views (a View wrapping other elements) as
+  // visible="false" even while their screen is on top, so a displayed check
+  // on one always fails on iOS. Found in the first live iOS run; for those,
+  // presence in the tree is the signal that the screen rendered.
+  const containerOnIos = platform === 'ios' && /View$/.test(loc.element);
+  const shown = containerOnIos ? 'toBeExisting()' : 'toBeDisplayed()';
   const action = {
     tap: `await $(${sel}).click();`,
     type: `await $(${sel}).setValue(${JSON.stringify(p.text)});`,
-    assertVisible: `await expect($(${sel})).toBeDisplayed();`,
-    assertNotVisible: `await expect($(${sel})).not.toBeDisplayed();`,
+    assertVisible: `await expect($(${sel})).${shown};`,
+    assertNotVisible: `await expect($(${sel})).not.${shown};`,
   }[p.action as 'tap' | 'type' | 'assertVisible' | 'assertNotVisible'];
-  return [...notes, action];
+  return [...notes, ...(containerOnIos && p.action.startsWith('assert') ? ['// iOS container view: asserts presence, see codegen.mts'] : []), action];
 }
 
 export function generateSteps(result: PlatformResult): string {
@@ -75,14 +81,22 @@ export function generateSteps(result: PlatformResult): string {
 
 export type RunTarget = 'sauce' | 'local';
 
-const DEVICE: Record<RunTarget, Record<Platform, Record<string, string>>> = {
+const DEVICE: Record<RunTarget, Record<Platform, Record<string, string | number>>> = {
   sauce: {
     android: { platformName: 'Android', 'appium:automationName': 'UiAutomator2', 'appium:deviceName': 'Google Pixel.*' },
     ios: { platformName: 'iOS', 'appium:automationName': 'XCUITest', 'appium:deviceName': 'iPhone.*' },
   },
   local: {
     android: { platformName: 'Android', 'appium:automationName': 'UiAutomator2', 'appium:deviceName': 'Android Emulator' },
-    ios: { platformName: 'iOS', 'appium:automationName': 'XCUITest', 'appium:deviceName': 'iPhone 17' },
+    // WebDriverAgent is built and launched on the simulator on first use,
+    // which outlasts Appium's default wait on a busy machine.
+    ios: {
+      platformName: 'iOS',
+      'appium:automationName': 'XCUITest',
+      'appium:deviceName': 'iPhone 17',
+      'appium:wdaLaunchTimeout': 240000,
+      'appium:wdaConnectionTimeout': 240000,
+    },
   },
 };
 
@@ -103,7 +117,7 @@ export function generateConfig(
 ): string {
   const spec = path.relative(outDir, featureFile);
   const caps = Object.entries(DEVICE[target][platform])
-    .map(([k, v]) => `      '${k}': '${v}',`)
+    .map(([k, v]) => `      '${k}': ${typeof v === 'number' ? v : `'${v}'`},`)
     .join('\n');
   const appEnv = target === 'sauce' ? `SAUCE_APP_${platform.toUpperCase()}` : `APP_${platform.toUpperCase()}`;
   const header =

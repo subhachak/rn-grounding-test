@@ -153,8 +153,28 @@ It confirmed on device that RN exposes `testID` as the Android
 persona variants render as the gate predicted, and that the
 accessibilityLabel-only balance is found via content-desc.
 
-Local iOS needs Xcode (for the simulator), then `npx expo run:ios
---configuration Release` and `npx appium driver install xcuitest`.
+Local iOS, once Xcode and an iOS Simulator runtime are installed
+(`brew install cocoapods`, `npx appium driver install xcuitest`):
+
+```bash
+xcrun simctl boot "iPhone 17"
+npx expo prebuild --platform ios                                # generate ios/ (gitignored), runs pod install
+xcodebuild -workspace ios/rngroundingtest.xcworkspace -scheme rngroundingtest \
+  -configuration Release -sdk iphonesimulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO
+npx wdio run generated/STORY-101/wdio.ios.local.conf.ts
+```
+
+iOS 27 kills apps that have not adopted the UIScene lifecycle at launch;
+`app.json` opts in through `expo-build-properties` (`enableSceneSupport`,
+Expo 57.0.23+).
+
+First live iOS result (iPhone 17, iOS 27): 41 steps passed, 2 pending
+(awaiting the Copilot agent), 6 skipped. Two things only the live run
+could show: XCUITest reports RN container views as not visible even on
+screen, so iOS assertions on a container `View` check presence instead
+(`generator/codegen.mts`); and iOS autocorrect mangled `member.restricted`
+into `memberestricted`, which the persona assertion caught, fixed with
+`autoCorrect={false}` on the username field.
 
 ## Running the actual app (needs your machine, not this sandbox)
 

@@ -19,6 +19,8 @@ export const config: WebdriverIO.Config = {
       'platformName': 'iOS',
       'appium:automationName': 'XCUITest',
       'appium:deviceName': 'iPhone 17',
+      'appium:wdaLaunchTimeout': 240000,
+      'appium:wdaConnectionTimeout': 240000,
       'appium:app': process.env.APP_IOS ?? path.resolve(__dirname, "../../ios/build/Build/Products/Release-iphonesimulator/rngroundingtest.app"),
     },
   ],

@@ -11,6 +11,16 @@
     },
     "android": {
       "package": "com.test.rngroundingtest"
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ]
+    ]
   }
 }

@@ -14,12 +14,12 @@ When(/^I enter username "member\.entitled"$/, async () => {
 });
 
 When(/^I enter password "Passw0rd!"$/, async () => {
-  // testID=login-password-input (src/screens/LoginScreen.tsx:18), proposed by rule match
+  // testID=login-password-input (src/screens/LoginScreen.tsx:19), proposed by rule match
   await $("android=new UiSelector().resourceId(\"login-password-input\")").setValue("Passw0rd!");
 });
 
 When(/^I tap Log In$/, async () => {
-  // testID=login-submit-button (src/screens/LoginScreen.tsx:23), proposed by rule match
+  // testID=login-submit-button (src/screens/LoginScreen.tsx:24), proposed by rule match
   await $("android=new UiSelector().resourceId(\"login-submit-button\")").click();
 });
 
