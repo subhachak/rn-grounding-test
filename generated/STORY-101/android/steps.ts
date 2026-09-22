@@ -4,22 +4,22 @@ import { Given, When, Then } from '@wdio/cucumber-framework';
 import { $, driver, expect } from '@wdio/globals';
 
 Given(/^the login screen is displayed$/, async () => {
-  // testID=login-screen (src/screens/LoginScreen.tsx:7), proposed by rule match
+  // testID=login-screen (src/screens/LoginScreen.tsx:10), proposed by rule match
   await expect($("android=new UiSelector().resourceId(\"login-screen\")")).toBeDisplayed();
 });
 
 When(/^I enter username "member\.entitled"$/, async () => {
-  // testID=login-username-input (src/screens/LoginScreen.tsx:8), proposed by rule match
+  // testID=login-username-input (src/screens/LoginScreen.tsx:12), proposed by rule match
   await $("android=new UiSelector().resourceId(\"login-username-input\")").setValue("member.entitled");
 });
 
 When(/^I enter password "Passw0rd!"$/, async () => {
-  // testID=login-password-input (src/screens/LoginScreen.tsx:9), proposed by rule match
+  // testID=login-password-input (src/screens/LoginScreen.tsx:18), proposed by rule match
   await $("android=new UiSelector().resourceId(\"login-password-input\")").setValue("Passw0rd!");
 });
 
 When(/^I tap Log In$/, async () => {
-  // testID=login-submit-button (src/screens/LoginScreen.tsx:13), proposed by rule match
+  // testID=login-submit-button (src/screens/LoginScreen.tsx:23), proposed by rule match
   await $("android=new UiSelector().resourceId(\"login-submit-button\")").click();
 });
 
@@ -45,19 +45,19 @@ When(/^I open plan "p1"$/, async () => {
 });
 
 Then(/^the plan contribution amount is displayed$/, async () => {
-  // testID=plan-details-contribution-amount (src/screens/PlanDetailsScreen.tsx:14), proposed by rule match
+  // testID=plan-details-contribution-amount (src/screens/PlanDetailsScreen.tsx:18), proposed by rule match
   // renders only when isEntitled
   await expect($("android=new UiSelector().resourceId(\"plan-details-contribution-amount\")")).toBeDisplayed();
 });
 
 Then(/^the upgrade prompt is not displayed$/, async () => {
-  // testID=plan-details-upgrade-prompt (src/screens/PlanDetailsScreen.tsx:18), proposed by rule match
+  // testID=plan-details-upgrade-prompt (src/screens/PlanDetailsScreen.tsx:22), proposed by rule match
   // renders only when !(isEntitled)
   await expect($("android=new UiSelector().resourceId(\"plan-details-upgrade-prompt\")")).not.toBeDisplayed();
 });
 
 When(/^I enter username "member\.restricted"$/, async () => {
-  // testID=login-username-input (src/screens/LoginScreen.tsx:8), proposed by rule match
+  // testID=login-username-input (src/screens/LoginScreen.tsx:12), proposed by rule match
   await $("android=new UiSelector().resourceId(\"login-username-input\")").setValue("member.restricted");
 });
 
@@ -73,13 +73,13 @@ When(/^I open plan "p2"$/, async () => {
 });
 
 Then(/^the upgrade prompt is displayed$/, async () => {
-  // testID=plan-details-upgrade-prompt (src/screens/PlanDetailsScreen.tsx:18), proposed by rule match
+  // testID=plan-details-upgrade-prompt (src/screens/PlanDetailsScreen.tsx:22), proposed by rule match
   // renders only when !(isEntitled)
   await expect($("android=new UiSelector().resourceId(\"plan-details-upgrade-prompt\")")).toBeDisplayed();
 });
 
 Then(/^the plan contribution amount is not displayed$/, async () => {
-  // testID=plan-details-contribution-amount (src/screens/PlanDetailsScreen.tsx:14), proposed by rule match
+  // testID=plan-details-contribution-amount (src/screens/PlanDetailsScreen.tsx:18), proposed by rule match
   // renders only when isEntitled
   await expect($("android=new UiSelector().resourceId(\"plan-details-contribution-amount\")")).not.toBeDisplayed();
 });

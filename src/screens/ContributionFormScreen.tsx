@@ -4,17 +4,17 @@
 import React from 'react';
 import { View, TextInput, TouchableOpacity, Text } from 'react-native';
 
-export default function ContributionFormScreen() {
+export default function ContributionFormScreen({ navigation }: any) {
   return (
     <View testID="contribution-form-screen">
       <TextInput testID="contribution-amount-input" placeholder="Contribution amount" />
       {/* frequency selector shipped without a testID, common gap */}
       <TextInput placeholder="Frequency (monthly/annual)" />
-      <TouchableOpacity testID="contribution-submit-button">
+      <TouchableOpacity testID="contribution-submit-button" onPress={() => navigation.goBack()}>
         <Text>Submit</Text>
       </TouchableOpacity>
       {/* cancel action, also missing, same gap pattern */}
-      <TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.goBack()}>
         <Text>Cancel</Text>
       </TouchableOpacity>
     </View>

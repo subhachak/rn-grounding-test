@@ -325,7 +325,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-screen",
-          "evidence": "src/screens/LoginScreen.tsx:7",
+          "evidence": "src/screens/LoginScreen.tsx:10",
           "conditions": []
         },
         "errors": [],
@@ -347,7 +347,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-username-input",
-          "evidence": "src/screens/LoginScreen.tsx:8",
+          "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
         },
         "errors": [],
@@ -369,7 +369,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-password-input",
-          "evidence": "src/screens/LoginScreen.tsx:9",
+          "evidence": "src/screens/LoginScreen.tsx:18",
           "conditions": []
         },
         "errors": [],
@@ -391,7 +391,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-submit-button",
-          "evidence": "src/screens/LoginScreen.tsx:13",
+          "evidence": "src/screens/LoginScreen.tsx:23",
           "conditions": []
         },
         "errors": [],
@@ -503,7 +503,7 @@
         "locator": {
           "attribute": "testID",
           "id": "plan-details-contribution-amount",
-          "evidence": "src/screens/PlanDetailsScreen.tsx:14",
+          "evidence": "src/screens/PlanDetailsScreen.tsx:18",
           "conditions": [
             "isEntitled"
           ]
@@ -527,7 +527,7 @@
         "locator": {
           "attribute": "testID",
           "id": "plan-details-upgrade-prompt",
-          "evidence": "src/screens/PlanDetailsScreen.tsx:18",
+          "evidence": "src/screens/PlanDetailsScreen.tsx:22",
           "conditions": [
             "!(isEntitled)"
           ]
@@ -551,7 +551,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-username-input",
-          "evidence": "src/screens/LoginScreen.tsx:8",
+          "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
         },
         "errors": [],
@@ -619,7 +619,7 @@
         "locator": {
           "attribute": "testID",
           "id": "plan-details-upgrade-prompt",
-          "evidence": "src/screens/PlanDetailsScreen.tsx:18",
+          "evidence": "src/screens/PlanDetailsScreen.tsx:22",
           "conditions": [
             "!(isEntitled)"
           ]
@@ -643,7 +643,7 @@
         "locator": {
           "attribute": "testID",
           "id": "plan-details-contribution-amount",
-          "evidence": "src/screens/PlanDetailsScreen.tsx:14",
+          "evidence": "src/screens/PlanDetailsScreen.tsx:18",
           "conditions": [
             "isEntitled"
           ]
@@ -1194,7 +1194,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-screen",
-          "evidence": "src/screens/LoginScreen.tsx:7",
+          "evidence": "src/screens/LoginScreen.tsx:10",
           "conditions": []
         },
         "errors": [],
@@ -1216,7 +1216,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-username-input",
-          "evidence": "src/screens/LoginScreen.tsx:8",
+          "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
         },
         "errors": [],
@@ -1238,7 +1238,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-password-input",
-          "evidence": "src/screens/LoginScreen.tsx:9",
+          "evidence": "src/screens/LoginScreen.tsx:18",
           "conditions": []
         },
         "errors": [],
@@ -1260,7 +1260,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-submit-button",
-          "evidence": "src/screens/LoginScreen.tsx:13",
+          "evidence": "src/screens/LoginScreen.tsx:23",
           "conditions": []
         },
         "errors": [],
@@ -1372,7 +1372,7 @@
         "locator": {
           "attribute": "testID",
           "id": "plan-details-contribution-amount",
-          "evidence": "src/screens/PlanDetailsScreen.tsx:14",
+          "evidence": "src/screens/PlanDetailsScreen.tsx:18",
           "conditions": [
             "isEntitled"
           ]
@@ -1396,7 +1396,7 @@
         "locator": {
           "attribute": "testID",
           "id": "plan-details-upgrade-prompt",
-          "evidence": "src/screens/PlanDetailsScreen.tsx:18",
+          "evidence": "src/screens/PlanDetailsScreen.tsx:22",
           "conditions": [
             "!(isEntitled)"
           ]
@@ -1420,7 +1420,7 @@
         "locator": {
           "attribute": "testID",
           "id": "login-username-input",
-          "evidence": "src/screens/LoginScreen.tsx:8",
+          "evidence": "src/screens/LoginScreen.tsx:12",
           "conditions": []
         },
         "errors": [],
@@ -1488,7 +1488,7 @@
         "locator": {
           "attribute": "testID",
           "id": "plan-details-upgrade-prompt",
-          "evidence": "src/screens/PlanDetailsScreen.tsx:18",
+          "evidence": "src/screens/PlanDetailsScreen.tsx:22",
           "conditions": [
             "!(isEntitled)"
           ]
@@ -1512,7 +1512,7 @@
         "locator": {
           "attribute": "testID",
           "id": "plan-details-contribution-amount",
-          "evidence": "src/screens/PlanDetailsScreen.tsx:14",
+          "evidence": "src/screens/PlanDetailsScreen.tsx:18",
           "conditions": [
             "isEntitled"
           ]
@@ -1624,16 +1624,21 @@
         "step": "I open the contribution schedule",
         "proposal": {
           "step": "I open the contribution schedule",
-          "action": "unmapped",
-          "locator": null,
+          "action": "tap",
           "record": null,
           "text": null,
-          "gap": null,
-          "rationale": "no rule match (nothing in the registry matches \"contribution schedule\"); awaiting the Copilot agent (/generate-appium)",
-          "source": "none"
+          "rationale": "TouchableOpacity \"Schedule a contribution\"",
+          "source": "rules",
+          "locator": "dashboard-schedule-button",
+          "gap": null
         },
-        "verdict": "ungrounded",
-        "locator": null,
+        "verdict": "accepted",
+        "locator": {
+          "attribute": "testID",
+          "id": "dashboard-schedule-button",
+          "evidence": "src/screens/DashboardScreen.tsx:30",
+          "conditions": []
+        },
         "errors": [],
         "warnings": []
       },

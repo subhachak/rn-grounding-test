@@ -6,8 +6,8 @@
   "description": "Runnable Expo/React Native app used as a stress test for AST-based selector grounding, representative screens for stable IDs, templated-dynamic IDs, persona-gated variants, missing IDs, accessibilityLabel-only, and third-party component internals.",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "ground": "node scripts/extract-selectors.js ./src",
     "ground:save": "node scripts/extract-selectors.js ./src > registry.json && echo 'Wrote registry.json'",
     "generate": "node generator/cli.mts",
@@ -15,14 +15,14 @@
     "typecheck:generator": "tsc -p generator && tsc -p generated"
   },
   "dependencies": {
-    "@react-navigation/native": "^6.1.17",
-    "@react-navigation/native-stack": "^6.9.26",
-    "expo": "~51.0.0",
-    "expo-status-bar": "~1.12.0",
-    "react": "18.2.0",
-    "react-native": "0.74.0",
-    "react-native-safe-area-context": "4.10.1",
-    "react-native-screens": "3.31.1"
+    "@react-navigation/native": "^7.4.1",
+    "@react-navigation/native-stack": "^7.19.2",
+    "expo": "~57.0.24",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
@@ -32,15 +32,18 @@
     "@cucumber/messages": "^34.2.1",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@types/node": "^26.6.2",
-    "@types/react": "~18.2.79",
+    "@types/react": "~19.2.4",
+    "@wdio/appium-service": "^9.32.0",
     "@wdio/cli": "^9.32.0",
     "@wdio/cucumber-framework": "^9.32.0",
     "@wdio/globals": "^9.31.3",
     "@wdio/local-runner": "^9.32.0",
     "@wdio/sauce-service": "^9.32.0",
     "@wdio/spec-reporter": "^9.32.0",
-    "babel-preset-expo": "~11.0.0",
-    "typescript": "^5.3.0",
+    "appium": "^3.7.0",
+    "appium-uiautomator2-driver": "^8.7.0",
+    "babel-preset-expo": "~57.0.12",
+    "typescript": "~6.0.3",
     "zod": "^3.25.76"
   }
 }

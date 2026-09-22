@@ -72,6 +72,13 @@ export function propose(input: MappingInput, agent: AgentProposals): Proposal[] 
   });
 }
 
+// The installed app's id per platform, from the Expo config, so restarts
+// between scenarios target the app actually under test.
+function readAppIds(): Record<Platform, string> {
+  const { expo } = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf-8'));
+  return { android: expo.android.package, ios: expo.ios.bundleIdentifier };
+}
+
 export interface GenerateOptions {
   outDir?: string;
   testDataFile?: string;
@@ -98,13 +105,16 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
   });
 
   fs.mkdirSync(outDir, { recursive: true });
+  const appIds = readAppIds();
   for (const r of results) {
     fs.mkdirSync(path.join(outDir, r.platform), { recursive: true });
     fs.writeFileSync(path.join(outDir, r.platform, 'steps.ts'), generateSteps(r));
-    fs.writeFileSync(
-      path.join(outDir, `wdio.${r.platform}.conf.ts`),
-      generateConfig(story, r.platform, features[r.platform].file, outDir),
-    );
+    for (const target of ['sauce', 'local'] as const) {
+      fs.writeFileSync(
+        path.join(outDir, `wdio.${r.platform}${target === 'local' ? '.local' : ''}.conf.ts`),
+        generateConfig(story, r.platform, features[r.platform].file, outDir, target, appIds[r.platform]),
+      );
+    }
   }
   fs.writeFileSync(path.join(outDir, 'grounding-report.md'), renderMarkdown(story, results));
   fs.writeFileSync(path.join(outDir, 'grounding-report.json'), JSON.stringify(results, null, 2) + '\n');

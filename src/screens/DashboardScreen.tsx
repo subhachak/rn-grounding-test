@@ -20,6 +20,18 @@ export default function DashboardScreen({ navigation }: any) {
       >
         <Text>Account Summary</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        testID="dashboard-contribute-button"
+        onPress={() => navigation.navigate('ContributionForm')}
+      >
+        <Text>Contribute</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        testID="dashboard-schedule-button"
+        onPress={() => navigation.navigate('ContributionDatePicker')}
+      >
+        <Text>Schedule a contribution</Text>
+      </TouchableOpacity>
     </View>
   );
 }

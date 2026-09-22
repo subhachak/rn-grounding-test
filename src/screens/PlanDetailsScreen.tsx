@@ -5,8 +5,12 @@
 // variant actually renders for a given persona.
 import React from 'react';
 import { View, Text } from 'react-native';
+import { useSession } from '../session';
 
-export default function PlanDetailsScreen({ isEntitled }: { isEntitled: boolean }) {
+export default function PlanDetailsScreen() {
+  // Keep the name `isEntitled`: the extractor records the render condition as
+  // source text, and test-data personas are keyed by it.
+  const { isEntitled } = useSession();
   return (
     <View testID="plan-details-screen">
       {isEntitled ? (

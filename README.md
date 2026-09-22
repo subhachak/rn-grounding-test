@@ -117,9 +117,44 @@ The CLI exits 2 when the gate rejected a mapping or a scenario failed G5.
 For STORY-101 the rules map 21 of 24 Android steps and 22 of 26 iOS steps;
 2 and 4 steps are left for the agent.
 
-To run on Sauce Labs: set `SAUCE_USERNAME`, `SAUCE_ACCESS_KEY`, and
-`SAUCE_APP_ANDROID` / `SAUCE_APP_IOS`, then
-`npx wdio run generated/STORY-101/wdio.ios.conf.ts`.
+### Running the generated tests
+
+Each story gets two WebdriverIO configs per platform. Both restart the app
+before every scenario, so each scenario starts at the login screen.
+
+- `wdio.<platform>.local.conf.ts`: starts Appium itself and installs the
+  local build on a running emulator/simulator.
+- `wdio.<platform>.conf.ts`: Sauce Labs. Needs `SAUCE_USERNAME`,
+  `SAUCE_ACCESS_KEY`, and `SAUCE_APP_ANDROID` / `SAUCE_APP_IOS`.
+
+Local Android, once the toolchain below is installed:
+
+```bash
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=$HOME/Library/Android/sdk
+$ANDROID_HOME/emulator/emulator -avd grounding_pixel &          # boot the emulator
+npx expo prebuild --platform android                            # generate android/ (gitignored)
+(cd android && ./gradlew assembleRelease)                       # build the APK, JS bundled in
+npx wdio run generated/STORY-101/wdio.android.local.conf.ts
+```
+
+Toolchain (one time, Apple silicon Mac): `brew install --cask
+android-commandlinetools`, `brew install openjdk@17`, then with
+`sdkmanager --sdk_root=$ANDROID_HOME` install `platform-tools`, `emulator`,
+`platforms;android-36`, `build-tools;36.0.0`, `cmdline-tools;latest`, and
+`system-images;android-36;google_apis;arm64-v8a`; create the AVD with
+`avdmanager create avd -n grounding_pixel -k
+"system-images;android-36;google_apis;arm64-v8a" -d pixel_7`; and
+`npx appium driver install uiautomator2`.
+
+First live result (Android 36 emulator, STORY-101): 39 steps passed, 2
+pending (the step still awaiting the Copilot agent), 8 skipped after them.
+It confirmed on device that RN exposes `testID` as the Android
+`resource-id`, that templated IDs resolve (`plan-item-p1`), that both
+persona variants render as the gate predicted, and that the
+accessibilityLabel-only balance is found via content-desc.
+
+Local iOS needs Xcode (for the simulator), then `npx expo run:ios
+--configuration Release` and `npx appium driver install xcuitest`.
 
 ## Running the actual app (needs your machine, not this sandbox)
 
