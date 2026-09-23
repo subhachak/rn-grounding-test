@@ -94,7 +94,10 @@ low. The first time, VS Code asks you to trust/start the MCP server from
 narrates each phase: overview, mapping any unmapped steps, critiquing rule
 matches, approvals, device runs, report. When something needs a person,
 VS Code shows you an approval form with the evidence; the agent never sees
-or answers that form. Restart the `selector-grounding` MCP server after
+or answers that form. A form waits up to 15 minutes for you
+(`GROUNDING_FORM_TIMEOUT_MS` to change it); with no answer, those items
+stay pending and the run continues. Before each device run it asks about
+anything still awaiting approval for that platform. Restart the `selector-grounding` MCP server after
 pulling changes.
 
 **In a terminal:** the same phases, prompting you in the terminal:

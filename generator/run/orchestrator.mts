@@ -129,8 +129,12 @@ export async function phaseDevice(story: string, platform: Platform, io: RunIO, 
     const validation = await runSuite(story, platform, device, { validateFallbacks: true, say, build });
     updateRun(story, (s) => s.suites.push(validation));
     generateStory(dir);
-    await phaseApprovals(story, io, [platform]);
   }
+
+  // Ask for anything this platform still waits on, not only what the
+  // validation just produced: a retried run found its fallbacks already
+  // validated, skipped asking, and ran them as pending without a word.
+  if (listPending(dir, [platform]).length) await phaseApprovals(story, io, [platform]);
 
   const result = await runSuite(story, platform, device, { validateFallbacks: false, say, build });
   updateRun(story, (s) => s.suites.push(result));

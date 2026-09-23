@@ -112,6 +112,22 @@ server.registerTool(
   }),
 );
 
+// Forms a person answers (approvals, clean confirmation). The MCP default
+// request timeout is 60 seconds, which expired while a person was still
+// reading an approval form and failed the device run around it; a person gets
+// GROUNDING_FORM_TIMEOUT_MS (default 15 minutes). No answer in time comes
+// back as action "timeout", never as an error, so callers treat it as "not
+// decided" and carry on.
+const FORM_TIMEOUT_MS = Number(process.env.GROUNDING_FORM_TIMEOUT_MS) || 15 * 60 * 1000;
+
+async function askPerson(params) {
+  try {
+    return await server.server.elicitInput(params, { timeout: FORM_TIMEOUT_MS });
+  } catch (e) {
+    return { action: 'timeout', error: e.message };
+  }
+}
+
 // Appium test generation for the Copilot "Appium Test Generator" agent.
 // Steps are mapped by deterministic rules first; the agent is only ever shown
 // the steps the rules could not map, and only proposes for those.
@@ -396,13 +412,17 @@ async function registerRunTools() {
               default: false,
             };
           });
-          const result = await server.server.elicitInput({
+          const result = await askPerson({
             message:
               `${items.length} item(s) need your approval before tests use them. Tick what you approve; ` +
               `anything left unticked stays pending. Evidence:\n\n` +
               items.map((it, i) => `${i + 1}. [${it.platform}] ${it.kind}\n   ${it.lines.join('\n   ')}`).join('\n\n'),
             requestedSchema: { type: 'object', properties, required: ['approver'] },
           });
+          if (result.action === 'timeout') {
+            said.push(`No answer to the approval form within ${Math.round(FORM_TIMEOUT_MS / 60000)} minute(s); these stay pending until approved.`);
+            return null;
+          }
           if (result.action !== 'accept' || !result.content?.approver) return null;
           return { by: String(result.content.approver), approved: items.filter((_, i) => result.content[`item${i + 1}`] === true) };
         },
@@ -511,7 +531,7 @@ async function registerCleanTools() {
           return reply(`Not cleaned: this client cannot ask you to confirm. Run in a terminal: npm run clean -- ${all ? '--all' : story}`);
         }
         const what = all ? 'every story (all of output/)' : `story ${story} (${path.relative(ROOT, target)}/)`;
-        const answer = await server.server.elicitInput({
+        const answer = await askPerson({
           message: `Delete everything generated for ${what}? This includes:\n- ${all ? 'every story\'s mappings, reviews, validations, approvals, and reports' : contents.join('\n- ')}\n\nApprovals and validations are gone for good; the next run asks for them again.`,
           requestedSchema: {
             type: 'object',
@@ -519,6 +539,7 @@ async function registerCleanTools() {
             required: ['confirm'],
           },
         });
+        if (answer.action === 'timeout') return reply('Not cleaned: no answer to the confirmation form in time.');
         if (answer.action !== 'accept' || answer.content?.confirm !== true) return reply('Not cleaned: you did not confirm.');
         return reply(removeOutput(target));
       } catch (e) {
