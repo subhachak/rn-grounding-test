@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ROOT, storyOutput } from '../paths.mts';
+import { readStamp, sourceFingerprint, staleReason, writeStamp, type BuildStamp } from './build-fingerprint.mts';
 import type { Platform } from '../types.mts';
 
 export type Say = (message: string) => void;
@@ -21,6 +22,13 @@ const env = { ...process.env, ANDROID_HOME, JAVA_HOME, PATH: `/opt/homebrew/bin:
 export const APP_BINARY: Record<Platform, string> = {
   android: path.join(ROOT, 'android/app/build/outputs/apk/release/app-release.apk'),
   ios: path.join(ROOT, 'ios/build/Build/Products/Release-iphonesimulator/rngroundingtest.app'),
+};
+
+// Kept inside each platform's (git-ignored) build folder, so deleting the
+// build also deletes its record.
+const BUILD_STAMP: Record<Platform, string> = {
+  android: path.join(ROOT, 'android/app/build/source-fingerprint.json'),
+  ios: path.join(ROOT, 'ios/build/source-fingerprint.json'),
 };
 
 const sh = (cmd: string, args: string[]) => execFileSync(cmd, args, { encoding: 'utf-8', env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -86,10 +94,22 @@ export async function ensureDevice(platform: Platform, say: Say): Promise<string
   return `${ANDROID_AVD} emulator`;
 }
 
-export async function ensureBuild(platform: Platform, say: Say, rebuild = false): Promise<void> {
-  if (fs.existsSync(APP_BINARY[platform]) && !rebuild) return;
-  say(`Building the ${platform} app (release, JS bundled in). The first build takes several minutes.`);
-  if (!fs.existsSync(path.join(ROOT, platform))) {
+// Builds when the binary is missing, when asked, or when the app source it
+// was built from no longer matches the current source; returns the stamp of
+// the build the run will use.
+export async function ensureBuild(platform: Platform, say: Say, rebuild = false): Promise<BuildStamp> {
+  const current = sourceFingerprint(ROOT);
+  const stamp = readStamp(BUILD_STAMP[platform]);
+  const stale = fs.existsSync(APP_BINARY[platform]) ? staleReason(stamp, current) : 'no build yet';
+  if (!rebuild && !stale && stamp) {
+    say(`Using the existing ${platform} build: it matches the current app source (${current.bundle}).`);
+    return stamp;
+  }
+  say(`Building the ${platform} app (${rebuild ? 'rebuild requested' : stale}). This takes a few minutes, longer the first time.`);
+  // A native change (config, dependencies) needs the native project
+  // regenerated, not just recompiled.
+  const nativeChanged = stamp !== null && stamp.native !== current.native;
+  if (!fs.existsSync(path.join(ROOT, platform)) || nativeChanged) {
     await stream('npx', ['expo', 'prebuild', '--platform', platform, ...(platform === 'android' ? ['--no-install'] : [])], {
       say,
       milestone: /Finished prebuild|Installed CocoaPods|Error/,
@@ -117,6 +137,7 @@ export async function ensureBuild(platform: Platform, say: Say, rebuild = false)
       // the daemon may already be gone
     }
   }
+  return writeStamp(BUILD_STAMP[platform], current);
 }
 
 export interface StepResult {
@@ -132,6 +153,7 @@ export interface StepResult {
 export interface SuiteResult {
   platform: Platform;
   device: string;
+  build?: BuildStamp; // the app source the tested build was made from
   mode: 'validate-fallbacks' | 'normal';
   startedAt: string;
   finishedAt: string;
@@ -144,7 +166,7 @@ export async function runSuite(
   story: string,
   platform: Platform,
   device: string,
-  opts: { validateFallbacks: boolean; say: Say },
+  opts: { validateFallbacks: boolean; say: Say; build?: BuildStamp },
 ): Promise<SuiteResult> {
   const resultsFile = path.join(os.tmpdir(), `results-${story}-${platform}-${process.pid}-${Date.now()}.jsonl`);
   const conf = path.join(storyOutput(story).root, `wdio.${platform}.local.conf.ts`);
@@ -191,5 +213,14 @@ export async function runSuite(
   clearInterval(timer);
   poll();
   fs.rmSync(resultsFile, { force: true });
-  return { platform, device, mode: opts.validateFallbacks ? 'validate-fallbacks' : 'normal', startedAt, finishedAt: new Date().toISOString(), exitCode, steps };
+  return {
+    platform,
+    device,
+    ...(opts.build && { build: opts.build }),
+    mode: opts.validateFallbacks ? 'validate-fallbacks' : 'normal',
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    exitCode,
+    steps,
+  };
 }

@@ -61,6 +61,7 @@ export function renderHtmlReport(story: string, decided: Decided, run: RunState)
   <h3>${esc(r.platform)} ${verdict}</h3>
   <dl>
     <dt>Device</dt><dd>${esc(suite ? `${suite.device}, ${when(suite.finishedAt)}` : '-')}</dd>
+    <dt>App build</dt><dd>${suite?.build ? `source <span class="mono">${esc(suite.build.bundle)}</span>, config <span class="mono">${esc(suite.build.native)}</span>, built ${esc(when(suite.build.builtAt))}` : '-'}</dd>
     <dt>Steps run</dt><dd>${suite ? `${count('passed')} passed, ${count('failed')} failed, ${count('pending')} pending` : '-'}</dd>
     <dt>Unique steps</dt><dd>${s.steps}</dd>
     <dt>Mapped by</dt><dd>${s.byRules} rules, ${s.byAgent} Copilot agent, ${s.byHuman} QA</dd>

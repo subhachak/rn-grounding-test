@@ -106,13 +106,27 @@ npm run story -- STORY-101 --no-devices        # generate, approve, report only
 ```
 
 It boots the simulator/emulator itself (one at a time, for memory), builds
-the app if its binary is missing (`--rebuild` to force), validates new
+the app when its binary is missing or no longer matches the app source
+(`--rebuild` to force), validates new
 fallback locators first and asks you to approve them, runs the suite with a
 line per step, and writes `output/<story>/reports/latest.html`: device results per
 scenario and step, how every step was mapped and decided, gaps with the
 proposed testID patch, fallbacks with their device evidence, critic flags,
 every human approval (who, when, fingerprint), and the run log. Without a
 terminal (e.g. CI) it approves nothing; those steps stay pending.
+
+### Stale builds
+
+Tests are generated from the current `src/`, so they must run on a build of
+that same source. Each build records a fingerprint of what it was made from
+(`src/`, `App.tsx`, and config for the bundle; `app.json`, `package.json`,
+and the lockfile for the native project) in
+`android/app/build/source-fingerprint.json` or
+`ios/build/source-fingerprint.json`. Before a device run the fingerprint is
+compared with the current source: a source change rebuilds, a config or
+dependency change runs `expo prebuild` again first, and an unchanged source
+reuses the build. The report shows which fingerprint each tested build came
+from.
 
 ## Generating Appium tests from feature files
 

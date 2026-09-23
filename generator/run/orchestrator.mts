@@ -120,19 +120,19 @@ export async function phaseDevice(story: string, platform: Platform, io: RunIO, 
   const say = narrator(story, io);
   const dir = storyDir(story);
   const device = await ensureDevice(platform, say);
-  await ensureBuild(platform, say, opts.rebuild);
+  const build = await ensureBuild(platform, say, opts.rebuild);
 
   const unvalidated = () =>
     decideStory(dir).results.find((r) => r.platform === platform)!.steps.filter((d) => d.fallback?.state === 'unvalidated');
   if (unvalidated().length) {
     say(`${unvalidated().length} fallback locator(s) are not yet validated on ${platform}; validating them on the device first.`);
-    const validation = await runSuite(story, platform, device, { validateFallbacks: true, say });
+    const validation = await runSuite(story, platform, device, { validateFallbacks: true, say, build });
     updateRun(story, (s) => s.suites.push(validation));
     generateStory(dir);
     await phaseApprovals(story, io, [platform]);
   }
 
-  const result = await runSuite(story, platform, device, { validateFallbacks: false, say });
+  const result = await runSuite(story, platform, device, { validateFallbacks: false, say, build });
   updateRun(story, (s) => s.suites.push(result));
   const count = (s: string) => result.steps.filter((x) => x.status === s).length;
   say(`${platform} done: ${count('passed')} passed, ${count('failed')} failed, ${count('pending')} pending.`);
