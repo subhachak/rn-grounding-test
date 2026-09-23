@@ -3,7 +3,7 @@
 // live only here; steps reference page members, so a changed testID is one
 // regenerated line rather than an edit in every step that uses it.
 import path from 'node:path';
-import { evaluateExpression } from './conditions.mts';
+import { evaluateExpression, recordScope } from './conditions.mts';
 import { fallbackSelectors, type Selectors } from './fallbacks.mts';
 import { evidence } from './registry.mts';
 import type { TestIdProposal } from './remediation.mts';
@@ -119,7 +119,7 @@ export function buildPageModel(registry: RegistryFinding[], proposals: TestIdPro
 // test-data record the gate already validated.
 export function memberCall(m: PageMember, record: Record<string, unknown> | undefined): string {
   if (!m.params.length) return `${m.page}.${m.name}`;
-  const args = m.paramSources.map((src) => JSON.stringify(String(evaluateExpression(src, { item: record }))));
+  const args = m.paramSources.map((src) => JSON.stringify(String(evaluateExpression(src, recordScope([src], record)))));
   return `${m.page}.${m.name}(${args.join(', ')})`;
 }
 

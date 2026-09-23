@@ -63,3 +63,11 @@ test('generation is byte-identical run to run', () => {
   assert.deepEqual(Object.keys(a), Object.keys(b));
   for (const f of Object.keys(a)) assert.equal(a[f], b[f], `${f} differs between runs`);
 });
+
+test('wrappers and constants in other files resolve when the source path is relative', () => {
+  const r = spawnSync(process.execPath, ['scripts/extract-selectors.js', path.relative(ROOT, path.join(ROOT, FIXTURE, 'src'))], { cwd: ROOT, encoding: 'utf-8' });
+  const findings = JSON.parse(r.stdout).findings as { value: string; element: string; category: string }[];
+  const save = findings.find((f) => f.value === 'fx-save');
+  assert.equal(save?.element, 'TouchableOpacity');
+  assert.equal(findings.find((f) => f.value === 'fx-login-submit')?.category, 'stable');
+});

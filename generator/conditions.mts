@@ -58,6 +58,65 @@ function evaluate(node: t.Node, scope: Scope): unknown {
   }
 }
 
+// Loop variables differ from list to list (plan-card-${plan.id},
+// activity-row-${t.id}); binding the test-data record only to `item` rejected
+// every list that named its variable anything else. The record is bound to
+// each variable the sources read through (the root of plan.id, a bare `id`
+// in a template), except names reserved for persona props or the platform.
+export function recordScope(sources: string[], record: unknown, reserved: Iterable<string> = []): Scope {
+  const roots = new Set<string>(['item']);
+  const visit = (node: t.Node | null | undefined, inTemplate: boolean): void => {
+    if (!node) return;
+    if (node.type === 'MemberExpression') {
+      let root: t.Node = node;
+      while (root.type === 'MemberExpression') root = root.object;
+      if (root.type === 'Identifier') roots.add(root.name);
+      return;
+    }
+    if (node.type === 'Identifier' && inTemplate) roots.add(node.name);
+    if (node.type === 'TemplateLiteral') node.expressions.forEach((e) => visit(e as t.Node, true));
+    if (node.type === 'UnaryExpression') visit(node.argument, inTemplate);
+    if (node.type === 'LogicalExpression' || node.type === 'BinaryExpression') {
+      visit(node.left as t.Node, inTemplate);
+      visit(node.right, inTemplate);
+    }
+  };
+  for (const source of sources) {
+    try {
+      visit(babelParser.parseExpression(source.replace(/^\{|\}$/g, '')), false);
+    } catch {
+      // unparsable source binds nothing; evaluation reports it
+    }
+  }
+  const skip = new Set(reserved);
+  return Object.fromEntries([...roots].filter((r) => !skip.has(r)).map((r) => [r, record]));
+}
+
+// Every variable a condition reads: bare names (isEntitled, error) and the
+// roots of member paths (plan in plan.entitled, rows in rows.length).
+export function conditionRoots(source: string): string[] {
+  const roots = new Set<string>();
+  const visit = (node: t.Node | null | undefined): void => {
+    if (!node) return;
+    if (node.type === 'Identifier') roots.add(node.name);
+    else if (node.type === 'MemberExpression') {
+      let root: t.Node = node;
+      while (root.type === 'MemberExpression') root = root.object;
+      visit(root);
+    } else if (node.type === 'UnaryExpression') visit(node.argument);
+    else if (node.type === 'LogicalExpression' || node.type === 'BinaryExpression') {
+      visit(node.left as t.Node);
+      visit(node.right);
+    }
+  };
+  try {
+    visit(babelParser.parseExpression(source));
+  } catch {
+    // unparsable: no roots, so evaluation reports it
+  }
+  return [...roots];
+}
+
 export function evaluateExpression(source: string, scope: Scope): unknown {
   return evaluate(babelParser.parseExpression(source), scope);
 }

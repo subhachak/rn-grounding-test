@@ -145,3 +145,51 @@ test('G10 allows choose only on a vendor component with an adapter, in its value
   assert.deepEqual(rules(choose('other-picker', '2026-10-01')), ['G10']);
   assert.deepEqual(rules(choose('submit-button', '2026-10-01')), ['G10']);
 });
+
+test('templated IDs and conditions resolve through whatever the loop variable is called', () => {
+  const reg: RegistryFinding[] = [
+    finding({ value: '{`plan-card-${plan.id}`}', category: 'templated-dynamic', line: 30 }),
+    finding({ value: '{`plan-badge-${plan.id}`}', element: 'Text', category: 'templated-dynamic', conditions: ['plan.active'], line: 31 }),
+  ];
+  const d = decideStep(propose({ locator: '{`plan-card-${plan.id}`}', record: 'rows.a' }), reg, testData);
+  assert.equal(d.verdict, 'accepted');
+  assert.equal(d.locator?.id, 'plan-card-a');
+  const badge = (record: string) => propose({ step: `badge ${record}`, action: 'assertVisible', locator: '{`plan-badge-${plan.id}`}', record });
+  const feature: FeatureDoc = {
+    platform: 'ios', file: 'f', name: 'F',
+    scenarios: [{ name: 'S', tags: ['@persona:entitled'], line: 1, steps: [{ text: 'badge rows.a', kind: 'outcome', line: 2 }, { text: 'badge rows.b', kind: 'outcome', line: 3 }] }],
+  };
+  const steps = [badge('rows.a'), badge('rows.b')].map((p) => decideStep(p, reg, testData));
+  assert.deepEqual(decideScenarios(feature, steps, testData)[0].errors.map((e) => e.step), ['badge rows.b']);
+});
+
+test('G5 evaluates Platform.OS as the platform the feature runs on', () => {
+  const reg: RegistryFinding[] = [finding({ value: 'picker', element: 'DateTimePicker', conditions: ["Platform.OS === 'ios'"], line: 40 })];
+  const shown = propose({ step: 'picker shown', action: 'assertVisible', locator: 'picker' });
+  const check = (platform: 'ios' | 'android') =>
+    decideScenarios(
+      { platform, file: 'f', name: 'F', scenarios: [{ name: 'S', tags: ['@persona:entitled'], line: 1, steps: [{ text: 'picker shown', kind: 'outcome', line: 2 }] }] },
+      [decideStep(shown, reg, testData)],
+      testData,
+    )[0].errors.map((e) => e.rule);
+  assert.deepEqual(check('ios'), []);
+  assert.deepEqual(check('android'), ['G5']);
+});
+
+test('G5 warns about conditions on runtime state, and still fails unknown persona data', () => {
+  // `error` is the screen's own state; `isEntitled` is a persona prop in the
+  // test data, so it stays decidable.
+  const reg: RegistryFinding[] = [finding({ value: 'err', element: 'Text', conditions: ['isEntitled', 'error'], line: 50 })];
+  const shown = propose({ step: 'error shown', action: 'assertVisible', locator: 'err' });
+  const run = (persona: string) =>
+    decideScenarios(
+      { platform: 'ios', file: 'f', name: 'F', scenarios: [{ name: 'S', tags: [`@persona:${persona}`], line: 1, steps: [{ text: 'error shown', kind: 'outcome', line: 2 }] }] },
+      [decideStep(shown, reg, testData)],
+      testData,
+    )[0];
+  const entitled = run('entitled');
+  assert.deepEqual(entitled.errors, []);
+  assert.deepEqual(entitled.warnings.map((w) => w.rule), ['G5']);
+  assert.match(entitled.warnings[0].message, /runtime state \(error\)/);
+  assert.deepEqual(run('restricted').errors.map((e) => e.rule), ['G5']);
+});

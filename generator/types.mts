@@ -155,6 +155,9 @@ export interface ScenarioDecision {
   line: number;
   persona: string | null;
   errors: (Finding & { step: string })[];
+  // Conditions on runtime UI state (an error message, an empty list) that
+  // test data cannot decide; noted, not failed.
+  warnings: (Finding & { step: string })[];
 }
 
 export interface PlatformResult {

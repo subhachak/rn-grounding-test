@@ -75,6 +75,7 @@ export function summarize(r: PlatformResult) {
     ungrounded: count('ungrounded'),
     warnings: r.steps.reduce((n, s) => n + s.warnings.length, 0),
     scenarioErrors: r.scenarios.reduce((n, s) => n + s.errors.length, 0),
+    scenarioWarnings: r.scenarios.reduce((n, s) => n + (s.warnings?.length ?? 0), 0),
   };
 }
 
@@ -92,7 +93,7 @@ export function renderMarkdown(story: string, results: PlatformResult[]): string
       `${s.steps} unique steps: ${s.accepted} accepted (${s.byRules} by rules, ${s.byAgent} by the Copilot agent, ` +
         `${s.byHuman} by QA), ${s.rejected} rejected, ${s.ungrounded} ungrounded (${s.awaitingAgent} awaiting the agent; ` +
         `${s.fallbacksValidated} run on a device-validated fallback, ${s.fallbacksPending} fallbacks awaiting validation), ` +
-        `${s.warnings} warnings. ${s.scenarioErrors} scenario-level (G5) errors. ` +
+        `${s.warnings} warnings. ${s.scenarioErrors} scenario-level (G5) errors, ${s.scenarioWarnings} runtime-state warnings. ` +
         `${s.flagged} rule matches flagged by the match critic. ${s.awaitingApproval} awaiting human approval.`,
       '',
       '| Step | Decision | Source | Action | Locator | Evidence / reason |',
@@ -111,6 +112,13 @@ export function renderMarkdown(story: string, results: PlatformResult[]): string
       out.push('', '### Scenario checks (G5)', '');
       for (const sc of scenarioErrors) {
         for (const e of sc.errors) out.push(`- **${sc.scenario}** (line ${sc.line}), step "${e.step}": ${e.message}`);
+      }
+    }
+    const scenarioWarnings = r.scenarios.filter((sc) => sc.warnings?.length);
+    if (scenarioWarnings.length) {
+      out.push('', '### Scenario warnings (G5, runtime state)', '');
+      for (const sc of scenarioWarnings) {
+        for (const w of sc.warnings) out.push(`- **${sc.scenario}** (line ${sc.line}), step "${w.step}": ${w.message}`);
       }
     }
     out.push('');

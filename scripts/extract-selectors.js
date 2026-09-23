@@ -478,7 +478,10 @@ function extract(srcDir) {
   const modules = new Map();
   for (const file of collectFiles(srcDir)) {
     const mod = parseModule(file);
-    if (mod) modules.set(file, mod);
+    // Keyed by absolute path: imports resolve to absolute paths, and a
+    // relative key (e.g. scanning ./src) made every cross-file wrapper and
+    // constant lookup miss.
+    if (mod) modules.set(path.resolve(file), mod);
   }
   const wrappers = buildWrappers(modules);
   for (const mod of modules.values()) extractFromModule(mod, modules, wrappers);

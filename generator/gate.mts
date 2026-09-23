@@ -10,7 +10,9 @@
 //       cannot be resolved statically; a record on a static ID is an error
 //   G5  (per scenario) a conditionally rendered locator needs a @persona tag,
 //       and the condition must hold for that persona and record, except for
-//       assertNotVisible, where it must not hold
+//       assertNotVisible, where it must not hold. Conditions on runtime UI
+//       state (names no persona or record defines, e.g. `error`) cannot be
+//       decided from test data, so they are warned about, not failed
 //   G6  accessibilityLabel/Identifier locators pass with a warning
 //   G7  an unmapped step may cite a gap only if the registry has it as missing
 //   G8  type needs text; nothing else may carry text
@@ -18,7 +20,7 @@
 //       TextInput, tap on a touchable) for a fallback to act on it
 //   G10 choose targets a vendor component with a registered adapter, with a
 //       value in that adapter's format
-import { Unverifiable, evaluateCondition, resolveTemplate } from './conditions.mts';
+import { Unverifiable, conditionRoots, evaluateCondition, recordScope, resolveTemplate } from './conditions.mts';
 import { evidence } from './registry.mts';
 import { adapterFor } from './vendors.mts';
 import {
@@ -121,7 +123,7 @@ export function decideStep(p: Proposal, registry: RegistryFinding[], testData: T
       errors.push({ rule: 'G4', message: `test-data record ${p.record} does not exist` });
     } else {
       try {
-        id = resolveTemplate(found.value as string, { item: record });
+        id = resolveTemplate(found.value as string, recordScope([found.value as string], record));
       } catch (e) {
         if (!(e instanceof Unverifiable)) throw e;
         errors.push({ rule: 'G4', message: `cannot resolve template: ${e.message}` });
@@ -154,11 +156,15 @@ export function decideScenarios(
   testData: TestData,
 ): ScenarioDecision[] {
   const byStep = new Map(steps.map((s) => [s.step, s]));
+  // Names any persona defines are persona data: missing for one persona is an
+  // error. Names no persona defines are the app's own runtime state.
+  const personaNames = new Set(Object.values(testData.personas).flatMap((p) => Object.keys(p.props)));
   return feature.scenarios.map((scenario) => {
     const personaTags = scenario.tags.filter((t) => t.startsWith('@persona:'));
     const personaName = personaTags.length === 1 ? personaTags[0].slice('@persona:'.length) : null;
     const persona = personaName ? testData.personas[personaName] : undefined;
     const errors: ScenarioDecision['errors'] = [];
+    const warnings: ScenarioDecision['warnings'] = [];
 
     for (const { text } of scenario.steps) {
       const d = byStep.get(text);
@@ -174,21 +180,36 @@ export function decideScenarios(
         continue;
       }
       const record = d.proposal.record ? lookupRecord(testData, d.proposal.record) : undefined;
-      const scope = { ...persona.props, ...(record && { item: record }) };
+      // Platform.OS is the platform this feature runs on, so a
+      // platform-specific branch (e.g. an iOS-only picker) can be verified.
+      const reserved = [...Object.keys(persona.props), 'Platform'];
+      const scope = {
+        ...persona.props,
+        Platform: { OS: feature.platform },
+        ...(record && recordScope(d.locator.conditions, record, reserved)),
+      };
+      const known = (name: string) => personaNames.has(name) || name === 'Platform' || name in scope;
+      const state = d.locator.conditions.filter((c) => conditionRoots(c).some((n) => !known(n)));
+      const decidable = d.locator.conditions.filter((c) => !state.includes(c));
+      const expected = d.proposal.action !== 'assertNotVisible';
       try {
-        const renders = d.locator.conditions.every((c) => evaluateCondition(c, scope));
-        const expected = d.proposal.action !== 'assertNotVisible';
-        if (renders !== expected) {
-          fail(
-            `\`${d.locator.id}\` ${renders ? 'renders' : 'does not render'} for persona ${personaName} ` +
-              `(${d.locator.conditions.join(' && ')}), but the step expects it ${expected ? 'shown' : 'hidden'}`,
-          );
+        const renders = decidable.every((c) => evaluateCondition(c, scope));
+        if (!renders && expected) {
+          fail(`\`${d.locator.id}\` does not render for persona ${personaName} (${decidable.join(' && ')}), but the step expects it shown`);
+        } else if (renders && !expected && !state.length) {
+          fail(`\`${d.locator.id}\` renders for persona ${personaName} (${decidable.join(' && ')}), but the step expects it hidden`);
+        } else if (state.length && renders) {
+          warnings.push({
+            rule: 'G5',
+            step: text,
+            message: `\`${d.locator.id}\` also depends on runtime state (${state.join(' && ')}); not checked statically`,
+          });
         }
       } catch (e) {
         if (!(e instanceof Unverifiable)) throw e;
-        fail(`cannot verify \`${d.locator.conditions.join(' && ')}\` for persona ${personaName}: ${e.message}`);
+        fail(`cannot verify \`${decidable.join(' && ')}\` for persona ${personaName}: ${e.message}`);
       }
     }
-    return { scenario: scenario.name, line: scenario.line, persona: personaName, errors };
+    return { scenario: scenario.name, line: scenario.line, persona: personaName, errors, warnings };
   });
 }
