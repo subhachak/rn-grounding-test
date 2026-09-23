@@ -121,6 +121,9 @@ export async function ensureBuild(platform: Platform, say: Say, rebuild = false)
 
 export interface StepResult {
   scenario: string;
+  // Which run of a scenario with this name (1, 2, ...): a Scenario Outline
+  // without placeholders in its title expands to scenarios that share a name.
+  occurrence: number;
   step: string;
   status: 'passed' | 'failed' | 'pending' | 'skipped';
   error?: string;
@@ -150,15 +153,21 @@ export async function runSuite(
 
   let seen = 0;
   const steps: StepResult[] = [];
+  // Scenarios run one at a time in feature order, so counting starts per
+  // name tells which same-named scenario each step belongs to.
+  const started = new Map<string, number>();
   const poll = () => {
     if (!fs.existsSync(resultsFile)) return;
     const lines = fs.readFileSync(resultsFile, 'utf-8').split('\n').filter(Boolean);
     for (const line of lines.slice(seen)) {
       const e = JSON.parse(line);
-      if (e.event === 'scenario') opts.say(`Scenario: ${e.scenario}`);
+      if (e.event === 'scenario') {
+        started.set(e.scenario, (started.get(e.scenario) ?? 0) + 1);
+        opts.say(`Scenario: ${e.scenario}`);
+      }
       if (e.event === 'step') {
         const status = e.passed ? 'passed' : e.error ? 'failed' : 'pending';
-        steps.push({ scenario: e.scenario, step: e.step, status, ...(e.error && { error: e.error }) });
+        steps.push({ scenario: e.scenario, occurrence: started.get(e.scenario) ?? 1, step: e.step, status, ...(e.error && { error: e.error }) });
         opts.say(`  ${status === 'passed' ? '✓' : status === 'failed' ? '✗' : '…'} ${e.step}${status === 'pending' ? ' (pending)' : ''}${e.error ? `: ${e.error}` : ''}`);
       }
     }

@@ -23,11 +23,18 @@ const badge = (text: string, tone: string) => `<span class="badge ${tone}">${esc
 const STATUS_TONE: Record<string, string> = { passed: 'ok', failed: 'bad', pending: 'warn', skipped: 'muted', 'not run': 'muted' };
 
 // Skipped steps fire no hook, so a scenario's remaining steps are filled in
-// from the feature file.
+// from the feature file. Results are matched to the k-th scenario of a given
+// name, since Outline expansions can share one.
 function scenarioRows(r: PlatformResult, suite: SuiteResult | undefined) {
+  const seen = new Map<string, number>();
   return r.feature.scenarios.map((sc) => {
-    const recorded = (suite?.steps ?? []).filter((s) => s.scenario === sc.name);
-    const steps = sc.steps.map((st, i): StepResult => recorded[i] ?? { scenario: sc.name, step: st.text, status: suite ? 'skipped' : ('not run' as StepResult['status']) });
+    const occurrence = (seen.get(sc.name) ?? 0) + 1;
+    seen.set(sc.name, occurrence);
+    const recorded = (suite?.steps ?? []).filter((s) => s.scenario === sc.name && (s.occurrence ?? 1) === occurrence);
+    const steps = sc.steps.map(
+      (st, i): StepResult =>
+        recorded[i] ?? { scenario: sc.name, occurrence, step: st.text, status: suite ? 'skipped' : ('not run' as StepResult['status']) },
+    );
     const status = steps.some((s) => s.status === 'failed') ? 'failed' : steps.some((s) => s.status === 'pending') ? 'pending' : suite ? 'passed' : 'not run';
     return { name: sc.name, tags: sc.tags, steps, status };
   });

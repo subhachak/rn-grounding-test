@@ -51,8 +51,8 @@ test('the report fills in steps skipped after a pending one, from the feature fi
       {
         platform: 'android', device: 'emu', mode: 'normal', startedAt: 't', finishedAt: '2026-01-01T00:01:00.000Z', exitCode: 0,
         steps: [
-          { scenario: sc.name, step: sc.steps[0].text, status: 'passed' },
-          { scenario: sc.name, step: sc.steps[1].text, status: 'pending' },
+          { scenario: sc.name, occurrence: 1, step: sc.steps[0].text, status: 'passed' },
+          { scenario: sc.name, occurrence: 1, step: sc.steps[1].text, status: 'pending' },
         ],
       },
     ],
@@ -73,4 +73,30 @@ test('npm run clean removes one story\'s output and refuses paths outside it', (
   assert.equal(fs.existsSync(target), false);
   assert.notEqual(clean('../src').status, 0);
   assert.ok(fs.existsSync(path.join(ROOT, 'src')));
+});
+
+test('same-named scenarios (a Scenario Outline without placeholders in its title) each get their own results', () => {
+  const decided = decideStory(storyDir('STORY-101'));
+  const android = decided.results.find((r) => r.platform === 'android')!;
+  // Two scenarios under one name, the way an Outline's expansions arrive.
+  const [a, b] = android.feature.scenarios;
+  const twin = { ...b, name: a.name };
+  android.feature = { ...android.feature, scenarios: [a, twin] };
+  const run: RunState = {
+    story: 'STORY-101', startedAt: '2026-01-01T00:00:00.000Z', events: [], approvals: [],
+    suites: [{
+      platform: 'android', device: 'emu', mode: 'normal', startedAt: 't', finishedAt: '2026-01-01T00:01:00.000Z', exitCode: 0,
+      steps: [
+        ...a.steps.map((st) => ({ scenario: a.name, occurrence: 1, step: st.text, status: 'passed' as const })),
+        { scenario: a.name, occurrence: 2, step: twin.steps[0].text, status: 'failed' as const, error: 'boom' },
+      ],
+    }],
+  };
+  const html = renderHtmlReport('STORY-101', decided, run);
+  const blocks = html.split('<details').slice(1).filter((d) => d.includes(a.name));
+  assert.equal(blocks.length, 2);
+  assert.match(blocks[0], /badge ok">passed<\/span> [^<]*<\/summary>|summary><span class="badge ok">passed/);
+  assert.doesNotMatch(blocks[0], /boom/);
+  assert.match(blocks[1], /boom/);
+  assert.equal((blocks[1].match(/badge muted">skipped/g) ?? []).length, twin.steps.length - 1);
 });
