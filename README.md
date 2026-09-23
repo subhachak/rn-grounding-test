@@ -134,6 +134,7 @@ output/STORY-101/
   android/steps.ts, ios/steps.ts
   wdio.<platform>.conf.ts, wdio.<platform>.local.conf.ts
   grounding-report.md|json
+  registry.json           the locator registry these tests were generated from
   remediation/            testids.patch + README (proposed testIDs for gaps)
   proposals.json          agent / QA mappings, with their approvals
   review.json             match-critic flags, with their approvals

@@ -38,7 +38,10 @@ function latestNormal(run: RunState, platform: Platform) {
 }
 
 export function renderHtmlReport(story: string, decided: Decided, run: RunState): string {
-  const { results, testIds, agent, reviews, validations } = decided;
+  const { results, testIds, agent, reviews, validations, registry } = decided;
+  const registryFile = path.join(storyOutput(story).root, 'registry.json');
+  const count = (category: string) => registry.filter((f) => f.category === category).length;
+  const screens = new Set(registry.map((f) => f.screen)).size;
   const finishedAt = run.events.at(-1)?.at;
 
   const cards = results
@@ -203,6 +206,9 @@ ${deviceSections}
 
 <h2>How each step was mapped</h2>
 ${mappingSections}
+
+<h2>Registry</h2>
+<p>The tests were generated from ${registry.length} locator findings across ${screens} screens in <span class="mono">src/</span>: ${count('stable')} stable, ${count('templated-dynamic')} templated, ${count('expression-dynamic')} expression-based, and ${count('missing')} interactive elements with no locator. Saved as <span class="mono">${esc(path.relative(ROOT, registryFile))}</span>.</p>
 
 <h2>Testability gaps</h2>
 ${testIds.length ? `<p>Elements with no testID, and the testID proposed in each screen's naming convention. Engineering applies <span class="mono">${esc(path.relative(ROOT, patchFile))}</span> with <span class="mono">git apply</span>.</p>

@@ -62,6 +62,11 @@ test('the pipeline runs end to end, rules are never rejected, and every locator 
     }
   }
 
+  // The registry the tests were grounded against is saved with them.
+  const saved = JSON.parse(fs.readFileSync(path.join(out, 'registry.json'), 'utf-8'));
+  assert.deepEqual(saved.findings, loadRegistry(ROOT));
+  assert.equal(saved.summary.missing, saved.findings.filter((f: { category: string }) => f.category === 'missing').length);
+
   // Locators live only in page objects: step files never build a selector.
   for (const platform of ['android', 'ios']) {
     const steps = fs.readFileSync(path.join(out, platform, 'steps.ts'), 'utf-8');

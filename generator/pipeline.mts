@@ -11,7 +11,7 @@ import { fallbackStatus, loadValidations } from './fallbacks.mts';
 import { BASE_PAGE, buildPageModel, renderPage } from './pageobjects.mts';
 import { proposeTestIds, renderPatch, renderRemediation } from './remediation.mts';
 import { renderMarkdown, summarize } from './report.mts';
-import { loadRegistry, loadTestData } from './registry.mts';
+import { loadRegistry, loadTestData, registrySnapshot } from './registry.mts';
 import { PLATFORMS, type MappingInput, type Platform, type PlatformResult, type Proposal } from './types.mts';
 
 import { FEATURES_DIR, ROOT, storyOutput } from './paths.mts';
@@ -195,6 +195,8 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
 
   fs.writeFileSync(path.join(outDir, 'grounding-report.md'), renderMarkdown(story, results));
   fs.writeFileSync(path.join(outDir, 'grounding-report.json'), JSON.stringify(results, null, 2) + '\n');
+  // For the record: the locator registry these tests were grounded against.
+  fs.writeFileSync(path.join(outDir, 'registry.json'), JSON.stringify(registrySnapshot(registry), null, 2) + '\n');
 
   // The gate outcome alone decides pass/fail: a rejected proposal or a G5
   // scenario error means the generated tests would be wrong.

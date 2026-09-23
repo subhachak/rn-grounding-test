@@ -485,7 +485,7 @@ function extract(srcDir) {
   return { findings: results, summary: summarize(results) };
 }
 
-module.exports = { extract };
+module.exports = { extract, summarize };
 
 if (require.main === module) {
   console.log(JSON.stringify(extract(process.argv[2] || './src'), null, 2));
