@@ -110,7 +110,7 @@ export function renderRemediation(proposals: TestIdProposal[]): string {
     '',
     'Interactive elements with no locator, and the testID proposed for each in',
     "the screen's existing naming convention. Apply with",
-    '`git apply generated/remediation/testids.patch`, then regenerate: steps that',
+    '`git apply` on `testids.patch` in this folder (from the repo root), then regenerate: steps that',
     'used a fallback locator switch to the testID with no change to the step',
     'definitions, because page objects keep the same member name.',
     '',

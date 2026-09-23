@@ -5,7 +5,8 @@
 // answered by a model.
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, decideStory, generateStory, storyDir } from '../pipeline.mts';
+import { ROOT, storyOutput } from '../paths.mts';
+import { decideStory, generateStory, storyDir } from '../pipeline.mts';
 import { summarize } from '../report.mts';
 import { PLATFORMS, type Platform } from '../types.mts';
 import { applyApprovals, listPending, type Pending } from './approval-store.mts';
@@ -32,7 +33,7 @@ export interface RunState {
   suites: SuiteResult[];
 }
 
-export const runDir = (story: string) => path.join(ROOT, 'reports', story);
+export const runDir = (story: string) => storyOutput(story).reports;
 const runFile = (story: string) => path.join(runDir(story), 'run.json');
 
 export function loadRun(story: string): RunState {
@@ -146,7 +147,7 @@ export function phaseReport(story: string, io: RunIO): string {
   const file = path.join(runDir(story), `report-${stamp}.html`);
   fs.writeFileSync(file, html);
   fs.writeFileSync(path.join(runDir(story), 'latest.html'), html);
-  say(`Report written: ${path.relative(ROOT, file)} (also reports/${story}/latest.html).`);
+  say(`Report written: ${path.relative(ROOT, file)} (also ${path.relative(ROOT, path.join(runDir(story), 'latest.html'))}).`);
   return file;
 }
 

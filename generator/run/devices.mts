@@ -6,7 +6,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ROOT } from '../pipeline.mts';
+import { ROOT, storyOutput } from '../paths.mts';
 import type { Platform } from '../types.mts';
 
 export type Say = (message: string) => void;
@@ -144,7 +144,7 @@ export async function runSuite(
   opts: { validateFallbacks: boolean; say: Say },
 ): Promise<SuiteResult> {
   const resultsFile = path.join(os.tmpdir(), `results-${story}-${platform}-${process.pid}-${Date.now()}.jsonl`);
-  const conf = path.join(ROOT, 'generated', story, `wdio.${platform}.local.conf.ts`);
+  const conf = path.join(storyOutput(story).root, `wdio.${platform}.local.conf.ts`);
   const startedAt = new Date().toISOString();
   opts.say(`Running ${story} on the ${device}${opts.validateFallbacks ? ' in fallback-validation mode' : ''}.`);
 

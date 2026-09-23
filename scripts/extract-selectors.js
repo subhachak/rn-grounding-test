@@ -13,7 +13,7 @@
 //                     (medium) > accessibilityLabel (weak, it's user-facing
 //                     copy that gets localized and reworded).
 //
-// Usage: node scripts/extract-selectors.js ./src > registry.json
+// Usage: node scripts/extract-selectors.js ./src > output/registry.json
 
 const fs = require('fs');
 const path = require('path');

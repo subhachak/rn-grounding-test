@@ -17,4 +17,4 @@ For the story you are given, for `android` then `ios`:
 
 Your accepted mappings are not used until a person approves them (`npm run approve -- <story> --list`); say which are waiting.
 
-Finish with a short summary per platform: grounded/total (by rules and by you), rejected, and each gap with its location, so engineering knows which testIDs to add. Point to `generated/<story>/grounding-report.md`. Don't repeat the tool output in full.
+Finish with a short summary per platform: grounded/total (by rules and by you), rejected, and each gap with its location, so engineering knows which testIDs to add. Point to `output/<story>/grounding-report.md`. Don't repeat the tool output in full.

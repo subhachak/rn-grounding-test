@@ -7,6 +7,9 @@ import { test } from 'node:test';
 import { Unverifiable, evaluateCondition, resolveTemplate } from '../conditions.mts';
 import { ROOT, propose } from '../pipeline.mts';
 import { loadRegistry } from '../registry.mts';
+import { useTempOutput } from './helpers.mts';
+
+useTempOutput();
 import type { MappingInput } from '../types.mts';
 
 test('conditions evaluate the extractor subset and refuse anything else', () => {
@@ -74,7 +77,7 @@ test('the pipeline runs end to end, rules are never rejected, and every locator 
       .filter((f) => f.category === 'stable' || f.category === 'templated-dynamic')
       .map((f) => shape(f.value!.replace(/^\{`(.*)`\}$/, '$1'))),
   );
-  const pagesDir = path.join(path.dirname(out), 'pageobjects');
+  const pagesDir = path.join(out, 'pageobjects');
   let count = 0;
   for (const file of fs.readdirSync(pagesDir).filter((f) => f !== 'base.page.ts')) {
     const code = fs.readFileSync(path.join(pagesDir, file), 'utf-8');

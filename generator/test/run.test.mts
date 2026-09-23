@@ -1,14 +1,24 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import { ROOT, decideStory, storyDir } from '../pipeline.mts';
 import { renderHtmlReport } from '../run/html.mts';
 import { runStory, type RunIO, type RunState } from '../run/orchestrator.mts';
+import { useTempOutput } from './helpers.mts';
 
-const watched = ['features/STORY-101/proposals.json', 'fallbacks/validations.json'].map((f) => path.join(ROOT, f));
+const out = useTempOutput();
+const story = path.join(out, 'STORY-101');
+const watched = ['proposals.json', 'validations.json'].map((f) => path.join(story, f));
 
 test('a run whose approver declines records no approval, and still reports', async () => {
+  // Something to approve: an agent mapping and a device-validated fallback.
+  fs.mkdirSync(story, { recursive: true });
+  fs.writeFileSync(watched[0], JSON.stringify({ ios: { 'I open the contribution form': {
+    action: 'tap', locator: 'dashboard-contribute-button', record: null, text: null, gap: null, rationale: 'r', author: 'agent', authoredBy: 'copilot-agent',
+  } } }, null, 2));
+  fs.writeFileSync(watched[1], JSON.stringify({}, null, 2));
   const before = watched.map((f) => fs.readFileSync(f, 'utf-8'));
   const said: string[] = [];
   let asked = 0;
@@ -51,4 +61,16 @@ test('the report fills in steps skipped after a pending one, from the feature fi
   const block = html.slice(html.indexOf(sc.name), html.indexOf('</details>', html.indexOf(sc.name)));
   assert.equal((block.match(/badge muted">skipped/g) ?? []).length, sc.steps.length - 2);
   assert.match(html, /1 passed, 0 failed, 1 pending/);
+});
+
+test('npm run clean removes one story\'s output and refuses paths outside it', () => {
+  const target = path.join(out, 'STORY-CLEAN');
+  fs.mkdirSync(path.join(target, 'reports'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'reports', 'latest.html'), 'x');
+  const clean = (...args: string[]) =>
+    spawnSync(process.execPath, [path.join(ROOT, 'generator/clean.mts'), ...args], { encoding: 'utf-8', env: { ...process.env, GROUNDING_OUTPUT: out } });
+  assert.equal(clean('STORY-CLEAN').status, 0);
+  assert.equal(fs.existsSync(target), false);
+  assert.notEqual(clean('../src').status, 0);
+  assert.ok(fs.existsSync(path.join(ROOT, 'src')));
 });

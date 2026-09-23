@@ -53,6 +53,7 @@ function save(scope, output) {
   if (path.relative(ROOT, outPath).startsWith('..')) {
     throw new Error(`output must be inside the repo: ${output}`);
   }
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(registry, null, 2) + '\n');
   const files = new Set(registry.findings.map((f) => f.file)).size;
   return `Wrote ${path.relative(ROOT, outPath)}: ${findings.length} findings across ${files} files.\n${JSON.stringify(summary)}`;
@@ -102,7 +103,7 @@ server.registerTool(
       screen: z.string().optional().describe('Case-insensitive screen name filter, e.g. "PlanList"'),
       scope: z.enum(['src', 'repo']).default('src'),
       save: z.boolean().default(false),
-      output: z.string().default('registry.json').describe('Path relative to the repo root, used when save is true'),
+      output: z.string().default('output/registry.json').describe('Path relative to the repo root, used when save is true'),
     },
   },
   async ({ view, screen, scope, save: shouldSave, output }) => ({

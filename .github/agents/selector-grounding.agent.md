@@ -14,7 +14,7 @@ Keep cost low:
 - Call the tool once, with the narrowest `view` (and `screen` filter) that answers the question. Only call again if the first result can't answer it.
 - Views: `summary` counts, `gaps` missing locators, `variants` condition-gated locators, `dynamic` templated IDs, `weak` accessibilityLabel-only, `all` everything.
 - Scope is `src` by default; use `scope: repo` when asked for the whole codebase.
-- To generate/export/save the registry, call with `save: true` (optional `output`, default `registry.json`). Report the path and summary counts; don't read the file back.
+- To generate/export/save the registry, call with `save: true` (optional `output`, default `output/registry.json`). Report the path and summary counts; don't read the file back.
 - Reply in a few lines or a short table. Don't echo the full tool output.
 
 Interpretation:

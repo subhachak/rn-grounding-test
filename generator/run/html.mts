@@ -5,7 +5,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Approval } from '../approvals.mts';
-import { ROOT, type decideStory } from '../pipeline.mts';
+import { ROOT, storyOutput } from '../paths.mts';
+import type { decideStory } from '../pipeline.mts';
 import { summarize } from '../report.mts';
 import { evidence } from '../registry.mts';
 import type { Platform, PlatformResult } from '../types.mts';
@@ -114,7 +115,7 @@ export function renderHtmlReport(story: string, decided: Decided, run: RunState)
   const gapRows = testIds
     .map((t) => `<tr><td>${esc(t.gap.element)}</td><td>${esc(t.gap.description ?? '-')}</td><td class="mono">${esc(evidence(t.gap))}</td><td class="mono">${esc(t.testID)}</td></tr>`)
     .join('\n');
-  const patchFile = path.join(ROOT, 'generated/remediation/testids.patch');
+  const patchFile = path.join(storyOutput(story).remediation, 'testids.patch');
   const patch = fs.existsSync(patchFile) ? fs.readFileSync(patchFile, 'utf-8') : '';
 
   const fallbackRows = Object.entries(validations)
@@ -204,7 +205,7 @@ ${deviceSections}
 ${mappingSections}
 
 <h2>Testability gaps</h2>
-${testIds.length ? `<p>Elements with no testID, and the testID proposed in each screen's naming convention. Engineering applies <span class="mono">generated/remediation/testids.patch</span> with <span class="mono">git apply</span>.</p>
+${testIds.length ? `<p>Elements with no testID, and the testID proposed in each screen's naming convention. Engineering applies <span class="mono">${esc(path.relative(ROOT, patchFile))}</span> with <span class="mono">git apply</span>.</p>
 <div class="scroll"><table><thead><tr><th>Element</th><th>Visible text</th><th>Location</th><th>Proposed testID</th></tr></thead><tbody>${gapRows}</tbody></table></div>
 <details><summary>Proposed patch</summary><pre>${esc(patch)}</pre></details>` : '<p class="muted">No gaps.</p>'}
 

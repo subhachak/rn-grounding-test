@@ -159,7 +159,7 @@ export default class Page {
 
 // Device validation for a fallback (run with VALIDATE_FALLBACKS=1): waits for
 // the screen, requires exactly one match, and records the result with the
-// selector tested in fallbacks/validations.json, which the generator reads to
+// selector tested in the story's validations.json, which the generator reads to
 // decide whether steps may use the fallback.
 export async function validateFallback(key: string) {
   const selectors = fallbacks.get(key);
@@ -169,7 +169,7 @@ export async function validateFallback(key: string) {
   await driver.waitUntil(async () => (await $$(selector).length) > 0, { timeout: 15000 }).catch(() => undefined);
   const matches = await $$(selector).length;
   const caps = driver.capabilities as Record<string, unknown>;
-  const file = path.resolve(__dirname, '../../fallbacks/validations.json');
+  const file = path.resolve(__dirname, '../validations.json');
   const all = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf-8')) : {};
   // Keep a person's approval when the same selector is re-validated; the
   // generator ignores it anyway if the selector ever changes.
@@ -269,7 +269,7 @@ export function renderPage(page: PageModel['pages'] extends Map<string, infer P>
       if (i) out.push('');
       out.push(
         `  // FALLBACK: ${f.element} has no testID (${m.fallback.key}); located by its visible text`,
-        `  // "${f.description}". Proposed testID: ${m.fallback.proposedTestID} (generated/remediation/).`,
+        `  // "${f.description}". Proposed testID: ${m.fallback.proposedTestID} (remediation/testids.patch).`,
         `  get ${m.name}() {`,
         `    return this.fallback(${JSON.stringify(m.fallback.key)}, {`,
         `      android: ${JSON.stringify(m.fallback.selectors.android)},`,

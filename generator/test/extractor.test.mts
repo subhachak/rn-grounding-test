@@ -6,6 +6,9 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { ROOT } from '../pipeline.mts';
 import { loadRegistry } from '../registry.mts';
+import { useTempOutput } from './helpers.mts';
+
+useTempOutput();
 
 const FIXTURE = 'generator/test/fixtures/blindspots';
 const registry = () => loadRegistry(path.join(ROOT, FIXTURE));

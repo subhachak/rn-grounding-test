@@ -8,6 +8,7 @@ import { fallbackSelectors, fallbackStatus } from '../fallbacks.mts';
 import { ROOT, propose } from '../pipeline.mts';
 import { loadRegistry } from '../registry.mts';
 import type { RegistryFinding } from '../types.mts';
+import { useTempOutput } from './helpers.mts';
 
 const entry = (over: Partial<MappingEntry> = {}): MappingEntry => ({
   action: 'tap', locator: 'dashboard-contribute-button', record: null, text: null, gap: null,
@@ -49,14 +50,16 @@ test('a fallback is usable only once a person approved the exact selector that w
 });
 
 test('npm run approve refuses to let a mapping be approved by its own author', () => {
-  const file = path.join(ROOT, 'features/STORY-101/proposals.json');
+  const out = useTempOutput();
+  const file = path.join(out, 'STORY-101', 'proposals.json');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const mapping = entry({ author: 'human', authoredBy: 'Asha', rationale: 'QA mapping' });
+  fs.writeFileSync(file, JSON.stringify({ ios: { 'I open the contribution form': mapping } }, null, 2));
   const before = fs.readFileSync(file, 'utf-8');
-  const author = Object.values(JSON.parse(before).ios as Record<string, MappingEntry>).find((e) => e.authoredBy)?.authoredBy;
-  assert.ok(author, 'sample has an authored QA mapping');
   const r = spawnSync(
     process.execPath,
-    [path.join(ROOT, 'generator/approve.mts'), 'STORY-101', '--step', 'I open the contribution form', '--platform', 'ios', '--by', author!],
-    { encoding: 'utf-8' },
+    [path.join(ROOT, 'generator/approve.mts'), 'STORY-101', '--step', 'I open the contribution form', '--platform', 'ios', '--by', 'Asha'],
+    { encoding: 'utf-8', env: { ...process.env, GROUNDING_OUTPUT: out } },
   );
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /cannot approve it/);

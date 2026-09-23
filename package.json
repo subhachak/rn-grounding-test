@@ -9,12 +9,13 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "ground": "node scripts/extract-selectors.js ./src",
-    "ground:save": "node scripts/extract-selectors.js ./src > registry.json && echo 'Wrote registry.json'",
+    "ground:save": "mkdir -p output && node scripts/extract-selectors.js ./src > output/registry.json && echo 'Wrote output/registry.json'",
     "generate": "node generator/cli.mts",
     "test:generator": "node --test \"generator/test/*.test.mts\"",
-    "typecheck:generator": "tsc -p generator && tsc -p generated",
+    "typecheck:generator": "tsc -p generator && tsc -p generator/output.tsconfig.json",
     "approve": "node generator/approve.mts",
-    "story": "node generator/story.mts"
+    "story": "node generator/story.mts",
+    "clean": "node generator/clean.mts"
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "9.1.0",

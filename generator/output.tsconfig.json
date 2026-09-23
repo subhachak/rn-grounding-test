@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "types": ["node", "@wdio/globals/types", "@wdio/cucumber-framework", "@wdio/sauce-service"]
   },
-  "include": ["**/*.ts"]
+  "include": ["../output/**/*.ts"]
 }

@@ -35,8 +35,10 @@ scripts/extract-selectors.js   the AST extraction script
 features/<story>/              android.feature + ios.feature per story, plus the agent's proposals.json once it has run
 test-data/testdata.json        personas and records the gate resolves conditions and templates against
 generator/                     feature -> grounded WebdriverIO + Cucumber generator (see below)
-generated/pageobjects/         WebdriverIO page objects, one per screen, shared by every story
-generated/<story>/             generated step definitions, local + Sauce Labs configs, grounding report
+output/<story>/                everything a run produces for a story (git-ignored; npm run clean resets it):
+                               page objects, step definitions, local + Sauce Labs configs, grounding report,
+                               testID patch, agent/QA mappings, critic review, fallback validations,
+                               approvals, and HTML run reports
 scripts/mcp-server.js          exposes the script as an MCP tool (ground_selectors)
 .vscode/mcp.json               registers that MCP server with VS Code
 .github/agents/selector-grounding.agent.md  Copilot custom agent using that tool
@@ -68,7 +70,7 @@ real scans). Still not seen: conditions decided outside the component
 ```bash
 npm install
 npm run ground          # prints categorized JSON to the terminal
-npm run ground:save     # writes registry.json in the repo root
+npm run ground:save     # writes output/registry.json
 ```
 
 Or in VS Code: **Terminal > Run Task > Ground Selectors (AST extraction)**.
@@ -106,7 +108,7 @@ npm run story -- STORY-101 --no-devices        # generate, approve, report only
 It boots the simulator/emulator itself (one at a time, for memory), builds
 the app if its binary is missing (`--rebuild` to force), validates new
 fallback locators first and asks you to approve them, runs the suite with a
-line per step, and writes `reports/<story>/latest.html`: device results per
+line per step, and writes `output/<story>/reports/latest.html`: device results per
 scenario and step, how every step was mapped and decided, gaps with the
 proposed testID patch, fallbacks with their device evidence, critic flags,
 every human approval (who, when, fingerprint), and the run log. Without a
@@ -117,7 +119,36 @@ terminal (e.g. CI) it approves nothing; those steps stay pending.
 Each story has one feature file per platform under `features/<story>/`
 (`android.feature`, `ios.feature`). The output is WebdriverIO + Cucumber
 step definitions and a Sauce Labs config per platform, in
-`generated/<story>/`.
+`output/<story>/`.
+
+### Where things live, and resetting a story
+
+The repository holds only base files: the app (`src/`), feature files
+(`features/<story>/`), test data, the generator, scripts, agents, and docs.
+Everything a run produces goes under `output/<story>/`, which is
+git-ignored:
+
+```
+output/STORY-101/
+  pageobjects/            WebdriverIO page objects (whole app), base.page.ts
+  android/steps.ts, ios/steps.ts
+  wdio.<platform>.conf.ts, wdio.<platform>.local.conf.ts
+  grounding-report.md|json
+  remediation/            testids.patch + README (proposed testIDs for gaps)
+  proposals.json          agent / QA mappings, with their approvals
+  review.json             match-critic flags, with their approvals
+  validations.json        fallback device validations, with their approvals
+  reports/                run.json, latest.html, report-<time>.html
+```
+
+```bash
+npm run clean -- STORY-101     # reset one story
+npm run clean -- --all         # reset every story
+```
+
+Because decisions and approvals live in `output/`, cleaning a story also
+clears its approvals and validations; the next run asks for them again.
+Keep the HTML report if you need the audit trail.
 
 ```bash
 npm run generate -- features/STORY-101
@@ -142,7 +173,7 @@ the only AI involved, and only for steps the rules cannot match.
 3. **Copilot agent, for the leftovers only.** `/generate-appium STORY-101`
    in Copilot Chat (agent **Appium Test Generator**) sees just the unmatched
    steps via `get_mapping_context`, and submits proposals via
-   `submit_proposals`, which saves them to `features/<story>/proposals.json`.
+   `submit_proposals`, which saves them to `output/<story>/proposals.json`.
    An agent proposal can never override a rule match. If the rules match
    everything, the agent makes no model call at all. Until the agent has
    run, the leftovers are generated as `pending` steps marked "awaiting the
@@ -153,14 +184,14 @@ the only AI involved, and only for steps the rules cannot match.
    must resolve from a named record, persona-gated locators must actually
    render for the scenario's `@persona:` tag, and so on.
 5. **Generate** WebdriverIO page objects and step definitions.
-   `generated/pageobjects/` has one `<screen>.page.ts` per screen, built
-   from the whole app's registry and shared by every story: getters for
+   `output/<story>/pageobjects/` has one `<screen>.page.ts` per screen,
+   built from the whole app's registry: getters for
    static testIDs (`LoginPage.submitButton`), methods for templated ones
    (`PlanListPage.planItem('p1')`), render conditions and testability gaps
    noted in comments. `base.page.ts` is the only place that knows how
    locators surface per platform, how to assert container views on iOS,
    and how to type reliably (`typeText` focuses, waits for the keyboard,
-   and reads the field back). `generated/<story>/<platform>/steps.ts` only
+   and reads the field back). `output/<story>/<platform>/steps.ts` only
    calls page objects (a test enforces that no step builds a selector);
    each step cites its source line and whether rules or the agent mapped
    it. Rejected and ungrounded steps are generated as `pending` with the
@@ -172,11 +203,11 @@ the only AI involved, and only for steps the rules cannot match.
 An interactive element with no locator (e.g. the Cancel button) is handled
 in two deterministic ways, neither of which guesses:
 
-1. **Proposed testID patch.** `generated/remediation/testids.patch` adds a
+1. **Proposed testID patch.** `output/<story>/remediation/testids.patch` adds a
    testID at each gap in the screen's existing naming convention
    (`contribution-cancel-button`), with a summary in
-   `generated/remediation/README.md`. Engineering applies it with
-   `git apply generated/remediation/testids.patch`; a test proves the patch
+   `output/<story>/remediation/README.md`. Engineering applies it with
+   `git apply output/<story>/remediation/testids.patch`; a test proves the patch
    applies and closes every gap.
 2. **Device-validated fallback**, until the patch lands. Each gap with
    visible text or a placeholder gets per-platform fallback selectors
@@ -186,12 +217,12 @@ in two deterministic ways, neither of which guesses:
    matches exactly one element on that platform:
 
    ```bash
-   VALIDATE_FALLBACKS=1 npx wdio run generated/STORY-101/wdio.ios.local.conf.ts
+   VALIDATE_FALLBACKS=1 npx wdio run output/STORY-101/wdio.ios.local.conf.ts
    npm run generate -- features/STORY-101     # validated fallbacks become normal steps
    ```
 
    Results, with the exact selector tested and the device, are recorded in
-   `fallbacks/validations.json` (audit evidence); a changed selector needs
+   `output/<story>/validations.json` (audit evidence); a changed selector needs
    validating again. Unvalidated or failed fallbacks stay `pending`.
 
 Gaps with no visible text or placeholder get no fallback and stay
@@ -228,7 +259,7 @@ cannot judge meaning. The **Match Critic** Copilot agent (`/review-matches
 STORY-101`) reviews them through two tools, `get_rule_matches` (each match
 with its element, visible text, screen, and render condition) and
 `submit_review`, and can only flag. A flag, stored in
-`features/<story>/review.json` and bound to the fingerprint of the match it
+`output/<story>/review.json` and bound to the fingerprint of the match it
 questions, holds that match as `pending` until a person approves it with
 `npm run approve`; a flag on a match that has since changed no longer
 applies. The critic cannot approve, change, or remove anything.
@@ -250,17 +281,16 @@ instead of the 1st, which its read-back caught). The Android adapter is not
 implemented yet; no Android scenario uses the picker.
 
 Steps the rules cannot map can also be mapped by a QA engineer in
-`features/<story>/proposals.json` with `"author": "human"` (reported as
+`output/<story>/proposals.json` with `"author": "human"` and `authoredBy` (reported as
 `QA`), the manual path when the Copilot agent is unavailable. The agent
 never overwrites a human mapping, and both go through the same gate.
 
 The CLI exits 2 when the gate rejected a mapping or a scenario failed G5.
 For STORY-101 the rules map 21 of 24 Android steps and 24 of 26 iOS steps.
-The remaining steps are QA-mapped in `proposals.json` (Copilot Free cannot
-run the agent yet). With those mappings and the fallbacks approved, every
-scenario ran on device with nothing pending: Android 49/49, iOS 49/49.
-The sample's QA entries were written by Claude as a stand-in
-(`authoredBy`), so they need a person's approval before they are used.
+The remaining steps (2 per platform) need the Copilot agent or a QA
+mapping, approved by a person. With them mapped and the fallbacks
+approved, every scenario has run on device with nothing pending: Android
+49/49, iOS 49/49.
 
 ### Running the generated tests
 
@@ -279,7 +309,7 @@ export JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=$HOME/Library/Android
 $ANDROID_HOME/emulator/emulator -avd grounding_pixel &          # boot the emulator
 npx expo prebuild --platform android                            # generate android/ (gitignored)
 (cd android && ./gradlew assembleRelease)                       # build the APK, JS bundled in
-npx wdio run generated/STORY-101/wdio.android.local.conf.ts
+npx wdio run output/STORY-101/wdio.android.local.conf.ts
 ```
 
 Toolchain (one time, Apple silicon Mac): `brew install --cask
@@ -306,7 +336,7 @@ xcrun simctl boot "iPhone 17"
 npx expo prebuild --platform ios                                # generate ios/ (gitignored), runs pod install
 xcodebuild -workspace ios/rngroundingtest.xcworkspace -scheme rngroundingtest \
   -configuration Release -sdk iphonesimulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO
-npx wdio run generated/STORY-101/wdio.ios.local.conf.ts
+npx wdio run output/STORY-101/wdio.ios.local.conf.ts
 ```
 
 iOS 27 kills apps that have not adopted the UIScene lifecycle at launch;

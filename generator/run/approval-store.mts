@@ -4,8 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fallbackFingerprint, mappingApproval, mappingFingerprint } from '../approvals.mts';
-import { VALIDATIONS_FILE } from '../fallbacks.mts';
-import { ROOT, decideStory, proposalsFile, reviewFile } from '../pipeline.mts';
+import { storyOutput } from '../paths.mts';
+import { decideStory, proposalsFile, reviewFile } from '../pipeline.mts';
 import { PLATFORMS, type Platform, type StepDecision } from '../types.mts';
 
 export interface Pending {
@@ -66,7 +66,7 @@ export function listPending(dir: string, platforms: Platform[] = PLATFORMS): Pen
             `fallback:  ${gap.element}${gap.description ? ` "${gap.description}"` : ''} on ${gap.screen} (${fb.key}), used by "${d.step}"`,
             `selector:  ${rec?.selector}`,
             `device:    ${rec?.matches} match on ${rec?.device}, ${rec?.validatedAt}`,
-            `until:     proposed testID ${fb.proposedTestID} lands (generated/remediation/testids.patch)`,
+            `until:     proposed testID ${fb.proposedTestID} lands (remediation/testids.patch)`,
           ],
         });
       }
@@ -99,6 +99,6 @@ export function applyApprovals(dir: string, items: Pending[], by: string): void 
   if (items.some((p) => p.kind === 'mapping')) fs.writeFileSync(proposalsFile(dir), JSON.stringify(agent, null, 2) + '\n');
   if (items.some((p) => p.kind === 'flagged rule match')) fs.writeFileSync(reviewFile(dir), JSON.stringify(reviews, null, 2) + '\n');
   if (items.some((p) => p.kind === 'fallback')) {
-    fs.writeFileSync(path.join(ROOT, VALIDATIONS_FILE), JSON.stringify(validationsOut, null, 2) + '\n');
+    fs.writeFileSync(storyOutput(path.basename(dir)).validations, JSON.stringify(validationsOut, null, 2) + '\n');
   }
 }

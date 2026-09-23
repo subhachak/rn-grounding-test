@@ -3,10 +3,10 @@
 // text or placeholder), never guessed, and a fallback is used in a generated
 // step only after a device run confirmed it matches exactly one element on
 // that platform. Validation results are recorded, with the selector that was
-// tested, in fallbacks/validations.json as audit evidence.
+// tested, in output/<story>/validations.json as audit evidence.
 import fs from 'node:fs';
-import path from 'node:path';
 import { fallbackFingerprint, type Approval } from './approvals.mts';
+import { storyOutput } from './paths.mts';
 import { evidence } from './registry.mts';
 import { TAPPABLE, type Platform, type RegistryFinding } from './types.mts';
 
@@ -23,7 +23,6 @@ export interface ValidationRecord {
 // gap location (file:line) -> platform -> latest validation
 export type Validations = Record<string, Partial<Record<Platform, ValidationRecord>>>;
 
-export const VALIDATIONS_FILE = 'fallbacks/validations.json';
 
 const q = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
@@ -48,8 +47,8 @@ export function fallbackSelectors(gap: RegistryFinding): Selectors | null {
   return null;
 }
 
-export function loadValidations(repoRoot: string): Validations {
-  const file = path.join(repoRoot, VALIDATIONS_FILE);
+export function loadValidations(story: string): Validations {
+  const file = storyOutput(story).validations;
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf-8')) : {};
 }
 

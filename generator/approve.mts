@@ -7,9 +7,9 @@
 //
 // --list shows each mapping, critic-flagged rule match, and fallback awaiting
 // approval with the evidence behind it. Approving records who and when,
-// bound to a fingerprint of what was shown, in features/<story>/proposals.json
-// (mappings), features/<story>/review.json (flagged rule matches), or
-// fallbacks/validations.json (fallbacks). --by defaults to `git config
+// bound to a fingerprint of what was shown, in output/<story>/proposals.json
+// (mappings), review.json (flagged rule matches), or validations.json
+// (fallbacks). --by defaults to `git config
 // user.name`. Nothing here runs a model; it only records a person's decision.
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';

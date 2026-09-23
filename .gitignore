@@ -1,6 +1,5 @@
 node_modules/
-registry.json
+output/
 android/
 ios/
 .expo/
-reports/

@@ -2,7 +2,6 @@
 // calls, so a story generates identically however it was triggered.
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { generateConfig, generateSteps } from './codegen.mts';
 import { loadStory, uniqueSteps } from './features.mts';
 import { decideScenarios, decideStep } from './gate.mts';
@@ -15,18 +14,20 @@ import { renderMarkdown, summarize } from './report.mts';
 import { loadRegistry, loadTestData } from './registry.mts';
 import { PLATFORMS, type MappingInput, type Platform, type PlatformResult, type Proposal } from './types.mts';
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const FEATURES_DIR = path.join(ROOT, 'features');
+import { FEATURES_DIR, ROOT, storyOutput } from './paths.mts';
+
+export { FEATURES_DIR, ROOT };
 export const DEFAULT_TEST_DATA = path.join(ROOT, 'test-data', 'testdata.json');
 
-export const proposalsFile = (storyDir: string) => path.join(storyDir, 'proposals.json');
-export const defaultOutDir = (story: string) => path.join(ROOT, 'generated', story);
+// Keyed by the story folder (features/<story>) for callers that have it.
+export const proposalsFile = (storyDir: string) => storyOutput(path.basename(storyDir)).proposals;
+export const defaultOutDir = (story: string) => storyOutput(story).root;
 
 // What the Copilot agent (or a QA engineer, marked "author": "human")
 // submitted, per platform and step text.
 export type AgentProposals = Partial<Record<Platform, Record<string, MappingEntry>>>;
 
-export const reviewFile = (storyDir: string) => path.join(storyDir, 'review.json');
+export const reviewFile = (storyDir: string) => storyOutput(path.basename(storyDir)).review;
 
 export function readReviews(storyDir: string): Reviews {
   const file = reviewFile(storyDir);
@@ -122,7 +123,7 @@ export function decideStory(dir: string, opts: GenerateOptions = {}) {
   const reviews = readReviews(dir);
   const testIds = proposeTestIds(registry);
   const model = buildPageModel(registry, testIds);
-  const validations = loadValidations(ROOT);
+  const validations = loadValidations(path.basename(dir));
 
   const results: PlatformResult[] = PLATFORMS.map((platform) => {
     const feature = features[platform];
@@ -162,10 +163,10 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
   const outDir = opts.outDir ?? defaultOutDir(story);
   const { features, registry, testData, testIds, model, results } = decideStory(dir, opts);
 
-  // Page objects are shared by every story: generated from the whole app's
-  // registry into <out>/../pageobjects, replacing the folder so a screen
-  // removed from the app does not leave a stale page behind.
-  const pageObjectsDir = path.join(path.dirname(outDir), 'pageobjects');
+  // Page objects cover the whole app's registry and are regenerated into the
+  // story's own output, replacing the folder so a screen removed from the app
+  // does not leave a stale page behind.
+  const pageObjectsDir = path.join(outDir, 'pageobjects');
   fs.rmSync(pageObjectsDir, { recursive: true, force: true });
   fs.mkdirSync(pageObjectsDir, { recursive: true });
   fs.writeFileSync(path.join(pageObjectsDir, 'base.page.ts'), BASE_PAGE);
@@ -186,8 +187,8 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
       );
     }
   }
-  // Remediation is app-wide like the page objects: one patch for every gap.
-  const remediationDir = path.join(path.dirname(outDir), 'remediation');
+  // One patch for every gap in the app, like the page objects.
+  const remediationDir = path.join(outDir, 'remediation');
   fs.mkdirSync(remediationDir, { recursive: true });
   fs.writeFileSync(path.join(remediationDir, 'testids.patch'), renderPatch(ROOT, testIds));
   fs.writeFileSync(path.join(remediationDir, 'README.md'), renderRemediation(testIds));

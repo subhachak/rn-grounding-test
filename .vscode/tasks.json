@@ -13,7 +13,7 @@
       "detail": "Runs static AST extraction over src/screens and prints a categorized JSON registry (stable / templated-dynamic / expression-dynamic) to the terminal."
     },
     {
-      "label": "Ground Selectors (save to registry.json)",
+      "label": "Ground Selectors (save to output/registry.json)",
       "type": "shell",
       "command": "npm run ground:save",
       "problemMatcher": [],
@@ -21,7 +21,7 @@
         "reveal": "always",
         "panel": "dedicated"
       },
-      "detail": "Same as above, but writes the output to registry.json in the repo root."
+      "detail": "Same as above, but writes the output to output/registry.json (git-ignored)."
     }
   ]
 }
