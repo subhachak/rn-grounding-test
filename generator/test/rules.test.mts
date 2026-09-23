@@ -143,3 +143,10 @@ test('context never changes a match the words already decide', () => {
   const words = inScenarios(['the cart screen is displayed', 'I tap receipt done']);
   assert.equal(target(words.get('I tap receipt done')), 'receipt-done-button', 'explicit words beat the current screen');
 });
+
+test('a tap whose handler certainly navigates puts the scenario on that screen', () => {
+  const withNav = [...screens, f({ screen: 'Cart', value: 'cart-checkout-button', description: 'Checkout', navigatesTo: 'Receipt', line: 23 })];
+  const scenarios = [['the cart screen is displayed', 'I tap Checkout', 'I tap Done']];
+  const m = matchSteps({ ...input(withNav, [...new Set(scenarios.flat())]), scenarios });
+  assert.equal(target(m.get('I tap Done')), 'receipt-done-button');
+});

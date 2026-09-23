@@ -44,6 +44,7 @@ export interface RegistryFinding {
   module?: string; // package the element is imported from, when not react-native
   component?: string; // local wrapper used (e.g. PrimaryButton); element is what it renders
   resolvedFrom?: string; // source expression a constant testID was resolved from
+  navigatesTo?: string; // screen component a tap certainly navigates to
   file: string;
   line: number;
 }

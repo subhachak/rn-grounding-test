@@ -8,6 +8,9 @@
 //                     outermost first. Non-empty means the locator only
 //                     exists for some personas/data and needs live
 //                     validation under each variant.
+//   navigatesTo     - for a tappable element, the screen component a tap
+//                     certainly navigates to (from its handler and the
+//                     navigator's routes); absent when unknown or conditional.
 //   locatorStrength - how reliable the attribute is as a cross-platform
 //                     locator: testID (strong) > accessibilityIdentifier
 //                     (medium) > accessibilityLabel (weak, it's user-facing
@@ -383,6 +386,100 @@ function enclosingComponent(elementPath, mod) {
 // ---------------------------------------------------------------------------
 // Pass 2: locators and gaps.
 
+// ---------------------------------------------------------------------------
+// Navigation: where a tap goes, so step matching knows the screen after it.
+// Only certain navigation counts: a handler whose top level calls
+// navigation.navigate/push/replace/reset('Route') with no earlier `if` or
+// `return` that could skip it. Conditional or indirect navigation, and back,
+// leave the target unknown rather than guessed.
+
+const NAV_METHODS = new Set(['navigate', 'push', 'replace', 'reset']);
+// Navigator registrations: <Stack.Screen name="Plans" component={PlansScreen} />
+// and each navigator's initial route, collected per extract().
+let routeDefs = [];
+let navigatorDefs = [];
+
+function routeOfCall(call, code) {
+  // navigation.navigate(...) or navigation.getParent()?.reset(...)
+  if (call.type !== 'CallExpression' && call.type !== 'OptionalCallExpression') return undefined;
+  const callee = call.callee;
+  if (!callee || (callee.type !== 'MemberExpression' && callee.type !== 'OptionalMemberExpression')) return undefined;
+  if (callee.property.type !== 'Identifier' || !NAV_METHODS.has(callee.property.name)) return undefined;
+  if (!/^navigation\b/.test(code.slice(callee.object.start, callee.object.end))) return undefined;
+  const arg = call.arguments[0];
+  if (!arg) return null;
+  if (callee.property.name !== 'reset') return arg.type === 'StringLiteral' ? arg.value : null;
+  // reset({ index, routes: [{ name: 'Main' }] }): the route at index (default 0)
+  if (arg.type !== 'ObjectExpression') return null;
+  const prop = (name) => arg.properties.find((p) => p.type === 'ObjectProperty' && p.key.name === name);
+  const routes = prop('routes');
+  const index = prop('index');
+  const i = index && index.value.type === 'NumericLiteral' ? index.value.value : 0;
+  const route = routes && routes.value.type === 'ArrayExpression' && routes.value.elements[i];
+  const name = route && route.type === 'ObjectExpression' && route.properties.find((p) => p.type === 'ObjectProperty' && p.key.name === 'name');
+  return name && name.value.type === 'StringLiteral' ? name.value.value : null;
+}
+
+// The route a handler certainly navigates to, or null.
+function handlerRoute(fn, code) {
+  if (!fn || !/Function/.test(fn.type)) return null;
+  if (fn.body.type !== 'BlockStatement') return routeOfCall(fn.body, code) || null;
+  for (const stmt of fn.body.body) {
+    if (stmt.type === 'IfStatement' || stmt.type === 'ReturnStatement' || stmt.type === 'SwitchStatement' || stmt.type === 'TryStatement') return null;
+    if (stmt.type !== 'ExpressionStatement') continue;
+    const route = routeOfCall(stmt.expression, code);
+    if (route !== undefined) return route;
+  }
+  return null;
+}
+
+// The route an element's handlers (onPress, or a wrapper's onAction) certainly
+// navigate to: exactly one distinct target among them.
+function navigationTarget(opening, elementPath, code) {
+  const targets = new Set();
+  for (const attr of opening.attributes) {
+    if (attr.type !== 'JSXAttribute' || !/^on[A-Z]/.test(attr.name.name) || !attr.value || attr.value.type !== 'JSXExpressionContainer') continue;
+    let fn = attr.value.expression;
+    if (fn.type === 'Identifier') {
+      const binding = elementPath.scope.getBinding(fn.name);
+      const node = binding && binding.path.node;
+      fn = node && (node.type === 'VariableDeclarator' ? node.init : node);
+    }
+    const route = handlerRoute(fn, code);
+    if (route) targets.add(route);
+  }
+  return targets.size === 1 ? [...targets][0] : null;
+}
+
+function recordRoutes(opening, elementPath, written, mod, modules) {
+  const attr = (name) => opening.attributes.find((a) => a.type === 'JSXAttribute' && a.name.name === name);
+  if (/\.Screen$/.test(written)) {
+    const name = attr('name');
+    const component = attr('component');
+    if (!name || !name.value || name.value.type !== 'StringLiteral' || !component || component.value.type !== 'JSXExpressionContainer') return;
+    const expr = component.value.expression;
+    if (expr.type !== 'Identifier') return;
+    const target = componentFor(expr.name, mod, modules);
+    routeDefs.push({ route: name.value.value, component: target ? target.name : expr.name });
+  } else if (/\.Navigator$/.test(written)) {
+    const initial = attr('initialRouteName');
+    const first = elementPath.node.children.find((c) => c.type === 'JSXElement' && /\.Screen$/.test(jsxName(c.openingElement.name)));
+    const firstName = first && first.openingElement.attributes.find((a) => a.type === 'JSXAttribute' && a.name.name === 'name');
+    const route = initial && initial.value && initial.value.type === 'StringLiteral' ? initial.value.value : firstName && firstName.value && firstName.value.value;
+    if (route) navigatorDefs.push({ component: enclosingComponent(elementPath, mod), initial: route });
+  }
+}
+
+// Route name -> the screen component it shows. A route whose component is a
+// navigator (tabs inside a stack) shows that navigator's initial route.
+function screenOfRoute(route) {
+  const routes = new Map(routeDefs.map((r) => [r.route, r.component]));
+  const initial = new Map(navigatorDefs.map((n) => [n.component, n.initial]));
+  let component = routes.get(route);
+  for (let depth = 0; component && initial.has(component) && depth < 5; depth++) component = routes.get(initial.get(component));
+  return component || null;
+}
+
 function extractFromModule(mod, modules, wrappers) {
   const { code, ast } = mod;
 
@@ -402,6 +499,9 @@ function extractFromModule(mod, modules, wrappers) {
       const ownFn = elementPath.getFunctionParent();
       const params = ownFn ? locatorParams(ownFn.node) : { destructured: {}, propsName: null };
       const conditions = collectConditions(elementPath, code);
+      recordRoutes(opening, elementPath, written, mod, modules);
+      const route = navigationTarget(opening, elementPath, code);
+      const nav = route ? { route } : {};
       let hasLocator = false;
       let hasSpreadProps = false;
       let hasInteractionProp = false;
@@ -481,6 +581,7 @@ function extractFromModule(mod, modules, wrappers) {
           ...vendor,
           ...via,
           ...(resolvedFrom && { resolvedFrom }),
+          ...nav,
           file: mod.file,
           line: attr.loc.start.line,
         });
@@ -500,6 +601,7 @@ function extractFromModule(mod, modules, wrappers) {
           ...via,
           // a spread (`{...props}`) could be passing a testID we can't see
           ...(hasSpreadProps && { hasSpreadProps: true }),
+          ...nav,
           file: mod.file,
           line: opening.loc.start.line,
         });
@@ -530,6 +632,8 @@ function summarize(findings) {
 function extract(srcDir, options = {}) {
   results = [];
   excluded = (options.exclude || []).map((p) => path.resolve(p));
+  routeDefs = [];
+  navigatorDefs = [];
   aliases = Object.fromEntries(Object.entries(options.aliases || {}).map(([k, v]) => [k, path.resolve(v)]));
   const modules = new Map();
   for (const file of collectFiles(srcDir)) {
@@ -541,6 +645,14 @@ function extract(srcDir, options = {}) {
   }
   const wrappers = buildWrappers(modules);
   for (const mod of modules.values()) extractFromModule(mod, modules, wrappers);
+  // navigatesTo: the screen a tap certainly lands on, once every navigator
+  // registration is known (they can be in any file).
+  for (const r of results) {
+    if (!r.route) continue;
+    const screen = screenOfRoute(r.route);
+    delete r.route;
+    if (screen) r.navigatesTo = screen;
+  }
   return { findings: results, summary: summarize(results) };
 }
 

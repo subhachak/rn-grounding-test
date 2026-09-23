@@ -123,3 +123,16 @@ test('an app with no ids anywhere is told where to put them', () => {
   useConfig(file);
   assert.throws(() => generateStory(storyDir('STORY-9'), { outDir: path.join(dir, 'out') }), /app\.androidPackage \/ app\.iosBundleId/);
 });
+
+test('a tap records the screen its handler certainly navigates to, through the navigator routes', () => {
+  useConfig(path.join(REAL_APP, 'grounding.config.json'));
+  const to = (value: string) => loadRegistry().find((f) => f.value === value)?.navigatesTo;
+  assert.equal(to('rx-home-open-transfer'), 'TransferScreen', 'an inline handler, through a wrapper');
+  assert.equal(to('rx-transfer-home'), 'HomeScreen', 'a named handler; Main shows Tabs, whose first route is Home');
+  assert.equal(to('rx-transfer-settings'), 'SettingsScreen', 'getParent()?.reset({ routes }) after another call');
+  // not certain, so not recorded
+  assert.equal(to('rx-transfer-submit'), undefined, 'navigates only past an early return');
+  assert.equal(to('rx-transfer-either'), undefined, 'a conditional target');
+  assert.equal(to('rx-transfer-back'), undefined, 'back: the previous screen is not known statically');
+  assert.equal(to('rx-home-transfer'), undefined, 'a handler with no navigation');
+});

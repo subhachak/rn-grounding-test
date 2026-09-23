@@ -93,6 +93,10 @@ follows them (Copilot, a fallback, a person):
   the wrapper's own `testID={testID}` pass-through is not reported.
 - **Screens are components**: several components in one file are separate
   screens.
+- **Navigation**: a tappable element records the screen its handler
+  certainly navigates to (`navigatesTo`), from `navigation.navigate/push/
+  replace/reset` calls and the navigator's routes, including navigators
+  nested in navigators. Conditional navigation is not recorded.
 - **Deterministic output**: files are read in sorted order, and a test
   proves generation is byte-identical run to run.
 
@@ -231,7 +235,12 @@ the only AI involved, and only for steps the rules cannot match.
    When words alone leave a tie ("Done" on two screens, plans in three
    lists), the screen the scenario is on breaks it: an element asserted
    visible puts the scenario on its screen, typing keeps it there, and a
-   tap may navigate, so afterwards the screen is unknown. Context only
+   tap lands on the screen its handler certainly navigates to (the
+   extractor reads `navigation.navigate('Plans')` in the handler and the
+   navigator's `<Stack.Screen name="Plans" component={PlansScreen}>`
+   routes). A tap that navigates conditionally, goes back, or is not
+   understood leaves the screen unknown. So `I tap manage plans` then
+   `I open plan "p1"` needs no screen check in between. Context only
    breaks ties, never overrides words, and a step text shares one
    definition, so it is mapped only if every scenario using it means the
    same element.

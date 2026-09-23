@@ -113,6 +113,17 @@ to `app.aliases`. `npm run doctor` lists imports it cannot place, e.g.
 look like unknown components and constant testIDs look unresolved, which
 shows up as more gaps and unmapped steps.
 
+### Navigation
+
+Step matching follows the screen a scenario is on, and learns where a tap
+goes from the app's React Navigation code: `navigation.navigate('Route')`
+in the handler, and `<Stack.Screen name="Route" component={...}>` in the
+navigator. Apps that declare routes another way (Expo Router's file-based
+routes, or React Navigation's static `createNativeStackNavigator({ screens })`
+API) still work, but taps do not set the screen, so stories need a screen
+check (`Then the plans screen is displayed`) before steps whose words appear
+on several screens.
+
 ## 5. Sauce Labs
 
 Nothing runs locally in this setup: Sauce Labs provides the devices and

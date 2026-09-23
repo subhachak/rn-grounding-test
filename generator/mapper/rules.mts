@@ -8,9 +8,10 @@
 // Screen context breaks ties, as a person reading the scenario would: after
 // `the plans screen is displayed`, `I open plan "p1"` means the plan on the
 // Plans screen, not the one on Home. Context comes only from what earlier
-// steps established (an element asserted visible is on the current screen;
-// a tap may navigate, so after it the screen is unknown), and it is used only
-// when words alone leave more than one candidate. A step text shares one
+// steps established: an element asserted visible is on the current screen,
+// and a tap lands on the screen its handler certainly navigates to (the
+// extractor's navigatesTo); any other tap leaves the screen unknown. It is
+// used only when words alone leave more than one candidate. A step text shares one
 // definition wherever it appears, so it is mapped only if every occurrence
 // resolves to the same element.
 import { evidence } from '../registry.mts';
@@ -74,7 +75,7 @@ const where = (screen: string | null | undefined) => (screen ? ` (none of them a
 
 function propose(step: string, action: Action, target: { finding: RegistryFinding; byScreen?: string }, extra: Partial<Proposal>, why: string): Match {
   const f = target.finding;
-  const rationale = target.byScreen ? `${why}; the one on ${target.byScreen}, the screen earlier steps established` : why;
+  const rationale = target.byScreen ? `${why}; the one on ${target.byScreen}, the screen earlier steps lead to` : why;
   const base = { step, action, record: null, text: null, rationale, source: 'rules' as const, ...extra };
   if (f.category === 'missing') {
     // Matched an element that has no locator: a confirmed testability gap.
@@ -155,15 +156,17 @@ export function matchStep(step: string, input: MappingInput, screen: string | nu
   return { unresolved: 'phrasing matches no rule' };
 }
 
-// The screen a step leaves the app on, as far as the scenario shows it: an
-// element asserted visible is on the current screen; typing, choosing, and
-// asserting something hidden stay on it; a tap (or back, or a step not
-// understood) may navigate, so the screen is unknown after it.
+// The screen a step leaves the app on, as far as the scenario and the source
+// show it: an element asserted visible is on the current screen; typing,
+// choosing, and asserting something hidden stay on it; a tap lands where its
+// handler certainly navigates, and otherwise (conditional navigation, back, a
+// step not understood) the screen is unknown after it.
 function screenAfter(m: Match, before: string | null, registry: RegistryFinding[]): string | null {
   if (!('proposal' in m)) return null;
   const p = m.proposal;
   if (p.action === 'type' || p.action === 'choose' || p.action === 'assertNotVisible') return before;
   if (p.action === 'assertVisible') return registry.find((f) => f.value === p.locator)?.screen ?? null;
+  if (p.action === 'tap') return registry.find((f) => f.value === p.locator && f.navigatesTo)?.navigatesTo ?? null;
   return null;
 }
 
