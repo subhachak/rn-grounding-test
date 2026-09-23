@@ -21,7 +21,7 @@ or the VS Code task **"Ground Selectors (AST extraction)"**.
 It classifies each finding as:
 - `stable` — a literal string, e.g. `testID="login-enroll-button"`
 - `templated-dynamic` — a template-literal expression, e.g.
-  `testID={\`plan-item-${item.id}\`}`, the pattern is captured even though
+  `testID={\`plan-card-${plan.id}\`}`, the pattern is captured even though
   the resolved value depends on runtime data
 - `expression-dynamic` — any other non-literal expression
 

@@ -1,9 +1,9 @@
 // The human approval gate.
 //
-//   npm run approve -- STORY-101 --list
-//   npm run approve -- STORY-101 --step "I open the contribution form" [--platform ios] [--by "Name"]
-//   npm run approve -- STORY-101 --fallback src/screens/ContributionFormScreen.tsx:17 [--platform android]
-//   npm run approve -- STORY-101 --all [--by "Name"]
+//   npm run approve -- STORY-1 --list
+//   npm run approve -- STORY-1 --step "I tap the frequency option" [--platform ios] [--by "Name"]
+//   npm run approve -- STORY-1 --fallback src/screens/ContributeScreen.tsx:114 [--platform android]
+//   npm run approve -- STORY-1 --all [--by "Name"]
 //
 // --list shows each mapping, critic-flagged rule match, and fallback awaiting
 // approval with the evidence behind it. Approving records who and when,

@@ -1,7 +1,7 @@
 ---
 name: Story Cleaner
 description: Reset everything generated for a story (output/<story>/), after you confirm
-argument-hint: story id, e.g. "STORY-101", or "all"
+argument-hint: story id, e.g. "STORY-1", or "all"
 tools: ['selector-grounding/clean_story']
 # Cheapest first. MAI-Code-1.1-Flash is left out: Copilot sends it a
 # tool_search tool its API rejects ("not supported with gpt-5").

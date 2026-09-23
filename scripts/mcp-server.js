@@ -101,7 +101,7 @@ server.registerTool(
       'save: write the full JSON registry to `output` and return only a summary.',
     inputSchema: {
       view: z.enum(Object.keys(VIEWS)).default('summary'),
-      screen: z.string().optional().describe('Case-insensitive screen name filter, e.g. "PlanList"'),
+      screen: z.string().optional().describe('Case-insensitive screen name filter, e.g. "Plans"'),
       scope: z.enum(['src', 'repo']).default('src'),
       save: z.boolean().default(false),
       output: z.string().default('output/registry.json').describe('Path relative to the repo root, used when save is true'),
@@ -150,7 +150,7 @@ async function registerGenerationTools() {
         'map, plus the mapping rules and the registry evidence to map them. Returns "nothing to map" when rules ' +
         'covered every step.',
       inputSchema: {
-        story: z.string().describe('Story folder name, e.g. "STORY-101"'),
+        story: z.string().describe('Story folder name, e.g. "STORY-1"'),
         platform: z.enum(PLATFORMS),
       },
     },
@@ -436,7 +436,7 @@ async function registerRunTools() {
       description:
         'Start a run for a story: scan the app source, generate tests, and report per platform how steps were mapped, ' +
         'what awaits approval, and what has no mapping yet.',
-      inputSchema: { story: z.string().describe('Story folder name, e.g. "STORY-101"') },
+      inputSchema: { story: z.string().describe('Story folder name, e.g. "STORY-1"') },
     },
     async ({ story }, extra) => {
       try {
@@ -518,7 +518,7 @@ async function registerCleanTools() {
       description:
         'Delete everything generated for a story (output/<story>/), or all stories with all=true, after the person ' +
         'confirms in a VS Code form. Includes that story\'s approvals and validations.',
-      inputSchema: { story: z.string().optional().describe('Story folder name, e.g. "STORY-101"'), all: z.boolean().optional() },
+      inputSchema: { story: z.string().optional().describe('Story folder name, e.g. "STORY-1"'), all: z.boolean().optional() },
     },
     async ({ story, all }) => {
       const reply = (t, isError = false) => ({ content: [{ type: 'text', text: t }], ...(isError && { isError: true }) });

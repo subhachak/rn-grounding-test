@@ -1,7 +1,7 @@
 // Run a whole story from the terminal, with commentary, pausing for human
 // approvals, and an HTML report at the end.
 //
-//   npm run story -- STORY-101 [--platform ios|android] [--no-devices] [--rebuild]
+//   npm run story -- STORY-1 [--platform ios|android] [--no-devices] [--rebuild]
 //
 // Approvals are asked here, item by item with the evidence; without a
 // terminal (e.g. CI) nothing is approved and those steps stay pending.

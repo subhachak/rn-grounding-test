@@ -1,7 +1,7 @@
 ---
 name: Story Runner
 description: Run a whole story end to end (generate, map, critique, approve, run on devices, HTML report) with live commentary
-argument-hint: story id, e.g. "STORY-101"
+argument-hint: story id, e.g. "STORY-1"
 tools:
   - 'selector-grounding/story_overview'
   - 'selector-grounding/get_mapping_context'

@@ -1,7 +1,7 @@
 ---
 name: Appium Test Generator
 description: Generate grounded WebdriverIO + Cucumber Appium tests (Sauce Labs) from a story's android and iOS feature files
-argument-hint: story id, e.g. "STORY-101"
+argument-hint: story id, e.g. "STORY-1"
 tools: ['selector-grounding/get_mapping_context', 'selector-grounding/submit_proposals']
 # Cheapest first. MAI-Code-1.1-Flash is left out: Copilot sends it a
 # tool_search tool its API rejects ("not supported with gpt-5").

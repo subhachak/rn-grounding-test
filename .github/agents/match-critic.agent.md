@@ -1,7 +1,7 @@
 ---
 name: Match Critic
 description: Review the deterministic rule matches of a story's feature files for meaning, and flag doubtful ones for human approval
-argument-hint: story id, e.g. "STORY-101"
+argument-hint: story id, e.g. "STORY-1"
 tools: ['selector-grounding/get_rule_matches', 'selector-grounding/submit_review']
 # Cheapest first. MAI-Code-1.1-Flash is left out: Copilot sends it a
 # tool_search tool its API rejects ("not supported with gpt-5").

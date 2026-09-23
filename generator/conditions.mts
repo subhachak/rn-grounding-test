@@ -1,6 +1,6 @@
 // Evaluates the source text the extractor records for render conditions
 // (`isEntitled`, `!(item.entitled)`) and for templated testIDs
-// (`plan-item-${item.id}`) against persona props and a test-data record.
+// (`plan-card-${plan.id}`) against persona props and a test-data record.
 //
 // Deliberately a whitelist interpreter over Babel's AST, never eval():
 // condition text comes from app source, and anything outside the subset below
@@ -125,7 +125,7 @@ export function evaluateCondition(source: string, scope: Scope): boolean {
   return Boolean(evaluate(babelParser.parseExpression(source), scope));
 }
 
-// Registry values for templated IDs keep the JSX braces: {`plan-item-${item.id}`}
+// Registry values for templated IDs keep the JSX braces: {`plan-card-${plan.id}`}
 export function resolveTemplate(registryValue: string, scope: Scope): string {
   const expr = babelParser.parseExpression(registryValue.replace(/^\{|\}$/g, ''));
   if (expr.type !== 'TemplateLiteral') throw new Unverifiable('not a template literal');
