@@ -3,9 +3,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { generateConfig, generateStepFiles } from './codegen.mts';
-import { loadStory, uniqueSteps } from './features.mts';
+import { loadStory, scenarioSteps, uniqueSteps } from './features.mts';
 import { decideScenarios, decideStep } from './gate.mts';
-import { matchStep } from './mapper/rules.mts';
+import { matchSteps } from './mapper/rules.mts';
 import { flagApproval, mappingApproval, mappingFingerprint, type MappingEntry, type Reviews } from './approvals.mts';
 import { fallbackStatus, loadValidations } from './fallbacks.mts';
 import { BASE_PAGE, buildPageModel, renderPage } from './pageobjects.mts';
@@ -50,15 +50,15 @@ export function storyDir(story: string): string {
 
 export function mappingInput(dir: string, platform: Platform, testDataFile = defaultTestData()): MappingInput {
   const features = loadStory(dir);
-  return { platform, steps: uniqueSteps(features[platform]), registry: loadRegistry(), testData: loadTestData(testDataFile) };
+  const feature = features[platform];
+  return { platform, steps: uniqueSteps(feature), scenarios: scenarioSteps(feature), registry: loadRegistry(), testData: loadTestData(testDataFile) };
 }
 
 // Steps the rule matcher cannot map, with the reason: the only ones the
 // Copilot agent is ever asked about.
 export function agentSteps(input: MappingInput): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const step of input.steps) {
-    const m = matchStep(step, input);
+  for (const [step, m] of matchSteps(input)) {
     if ('unresolved' in m) out[step] = m.unresolved;
   }
   return out;
@@ -69,8 +69,9 @@ export function agentSteps(input: MappingInput): Record<string, string> {
 export function propose(input: MappingInput, agent: AgentProposals, reviews: Reviews = {}): Proposal[] {
   const submitted = agent[input.platform] ?? {};
   const flags = reviews[input.platform]?.flags ?? {};
+  const matches = matchSteps(input);
   return input.steps.map((step): Proposal => {
-    const m = matchStep(step, input);
+    const m = matches.get(step)!;
     if ('proposal' in m) {
       // A critic flag holds a rule match for a person, but only while it
       // still describes this exact match.
@@ -134,7 +135,7 @@ export function decideStory(dir: string, opts: GenerateOptions = {}) {
 
   const results: PlatformResult[] = PLATFORMS.map((platform) => {
     const feature = features[platform];
-    const proposals = propose({ platform, steps: uniqueSteps(feature), registry, testData }, agent, reviews);
+    const proposals = propose({ platform, steps: uniqueSteps(feature), scenarios: scenarioSteps(feature), registry, testData }, agent, reviews);
     const steps = proposals.map((p) => {
       const d = decideStep(p, registry, testData);
       const member = d.gap && model.byGap.get(`${d.gap.file}:${d.gap.line}`);

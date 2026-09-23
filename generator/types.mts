@@ -102,6 +102,9 @@ export interface Proposal {
 export interface MappingInput {
   platform: Platform;
   steps: string[];
+  // Each scenario's step texts in order, for screen context. Optional:
+  // without it steps are matched on their words alone.
+  scenarios?: string[][];
   registry: RegistryFinding[];
   testData: TestData;
 }

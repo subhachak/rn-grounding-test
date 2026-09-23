@@ -64,6 +64,12 @@ export function loadStory(storyDir: string): Record<Platform, FeatureDoc> {
   return result;
 }
 
+// Each scenario's step texts in order (Background inlined, outlines
+// expanded), for matching steps in the context of the steps before them.
+export function scenarioSteps(feature: FeatureDoc): string[][] {
+  return feature.scenarios.map((sc) => sc.steps.map((st) => st.text));
+}
+
 export function uniqueSteps(feature: FeatureDoc): string[] {
   return [...new Set(feature.scenarios.flatMap((s) => s.steps.map((st) => st.text)))];
 }

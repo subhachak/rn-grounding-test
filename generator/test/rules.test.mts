@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { matchStep } from '../mapper/rules.mts';
+import { matchStep, matchSteps, type Match } from '../mapper/rules.mts';
 import type { MappingInput, RegistryFinding } from '../types.mts';
 
 const f = (over: Partial<RegistryFinding>): RegistryFinding => ({
@@ -93,4 +93,53 @@ test('choose steps map only to vendor components that have an adapter', () => {
   assert.deepEqual([m.proposal.action, m.proposal.locator, m.proposal.text], ['choose', 'home-date-picker', '2026-10-01']);
   // Without a vendor component, "the date picker" is left for the agent.
   assert.ok('unresolved' in matchStep('I choose "2026-10-01" in the date picker', input(registry)));
+});
+
+// Screen context: two screens, each with a "Done" button and a list of
+// orders, as in real apps where the same words appear on several screens.
+const screens = [
+  f({ screen: 'Cart', value: 'cart-screen', element: 'View', line: 20 }),
+  f({ screen: 'Cart', value: 'cart-done-button', description: 'Done', line: 21 }),
+  f({ screen: 'Cart', value: '{`cart-order-${o.id}`}', category: 'templated-dynamic', line: 22 }),
+  f({ screen: 'Receipt', value: 'receipt-screen', element: 'View', line: 30 }),
+  f({ screen: 'Receipt', value: 'receipt-done-button', description: 'Done', line: 31 }),
+  f({ screen: 'Receipt', value: '{`receipt-order-${o.id}`}', category: 'templated-dynamic', line: 32 }),
+  f({ screen: 'Receipt', value: 'receipt-note-input', element: 'TextInput', description: 'Note', line: 33 }),
+];
+const inScenarios = (...scenarios: string[][]) => {
+  const steps = [...new Set(scenarios.flat())];
+  return matchSteps({ ...input(screens, steps), scenarios });
+};
+const target = (m: Match | undefined): string => (m && 'proposal' in m ? String(m.proposal.locator) : `unresolved: ${m && 'unresolved' in m ? m.unresolved : '?'}`);
+
+test('words alone leave a tie that the screen established by earlier steps breaks', () => {
+  assert.ok('unresolved' in matchStep('I tap Done', input(screens)), 'without context, "Done" is on two screens');
+  const m = inScenarios(['the cart screen is displayed', 'I tap Done']);
+  assert.equal(target(m.get('I tap Done')), 'cart-done-button');
+  assert.match((m.get('I tap Done') as { proposal: { rationale: string } }).proposal.rationale, /the one on Cart/);
+  // a record step: two lists hold orders
+  const r = inScenarios(['the receipt screen is displayed', 'I open order "o1"']);
+  assert.equal(target(r.get('I open order "o1"')), '{`receipt-order-${o.id}`}');
+});
+
+test('typing keeps the screen; a tap may navigate, so after it the screen is unknown', () => {
+  const kept = inScenarios(['the receipt screen is displayed', 'I enter note "thanks"', 'I tap Done']);
+  assert.equal(target(kept.get('I tap Done')), 'receipt-done-button');
+  const lost = inScenarios(['the receipt screen is displayed', 'I tap Done', 'I open order "o1"']);
+  assert.match(target(lost.get('I open order "o1"')), /^unresolved/);
+});
+
+test('a step meaning different elements in different scenarios is left for the agent', () => {
+  const m = inScenarios(['the cart screen is displayed', 'I tap Done'], ['the receipt screen is displayed', 'I tap Done']);
+  assert.match(target(m.get('I tap Done')), /different elements in different scenarios.*cart-done-button on Cart.*receipt-done-button on Receipt/);
+  // the same meaning everywhere is fine
+  const same = inScenarios(['the cart screen is displayed', 'I tap Done'], ['the cart screen is displayed', 'I tap Done']);
+  assert.equal(target(same.get('I tap Done')), 'cart-done-button');
+});
+
+test('context never changes a match the words already decide', () => {
+  const m = inScenarios(['the receipt screen is displayed', 'the cart screen is displayed']);
+  assert.equal(target(m.get('the cart screen is displayed')), 'cart-screen');
+  const words = inScenarios(['the cart screen is displayed', 'I tap receipt done']);
+  assert.equal(target(words.get('I tap receipt done')), 'receipt-done-button', 'explicit words beat the current screen');
 });

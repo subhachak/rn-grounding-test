@@ -74,7 +74,7 @@ follows them (Copilot, a fallback, a person):
 | Story | What it shows | Left for later |
 |---|---|---|
 | STORY-201 Signing in and out | both personas, profile badges, sign out; an error that depends on runtime state (a G5 warning, not a failure) | none |
-| STORY-202 Plans by membership | per-plan badges from test-data records; persona-gated plan details; an Android-only back step | `I open plan "p1"`: three lists hold plans, so Copilot maps it |
+| STORY-202 Plans by membership | per-plan badges from test-data records; persona-gated plan details; an Android-only back step; `I open plan "p1"` is in three lists, and the screen context picks the one on Plans | none |
 | STORY-203 Making a contribution | quick amounts from records, a Scenario Outline, a runtime-state error | `I tap Cancel`: no testID, device-validated fallback; `I tap Quarterly`: no testID and no text, Copilot/QA |
 | STORY-204 Scheduling the first contribution | platform-gated UI: iOS date wheels through the vendor adapter, the Android date button | none |
 | STORY-205 Premier upsell for Basic members | a locked feature and the upgrade modal | none |
@@ -228,6 +228,13 @@ the only AI involved, and only for steps the rules cannot match.
    (`I open plan "p1"`). Naming an element that has no testID
    (`I tap Cancel`) becomes a cited testability gap. Anything ambiguous or
    unmatched is left for the agent rather than guessed.
+   When words alone leave a tie ("Done" on two screens, plans in three
+   lists), the screen the scenario is on breaks it: an element asserted
+   visible puts the scenario on its screen, typing keeps it there, and a
+   tap may navigate, so afterwards the screen is unknown. Context only
+   breaks ties, never overrides words, and a step text shares one
+   definition, so it is mapped only if every scenario using it means the
+   same element.
 3. **Copilot agent, for the leftovers only.** `/generate-appium STORY-1`
    in Copilot Chat (agent **Appium Test Generator**) sees just the unmatched
    steps via `get_mapping_context`, and submits proposals via
