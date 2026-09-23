@@ -14,6 +14,8 @@ process.env.GROUNDING_APP_ROOT = FIXTURE_APP;
 // It sits inside the repo's git-ignored output/ so generated TypeScript still
 // resolves node_modules.
 export function useTempOutput(): string {
+  // output/ does not exist on a fresh clone or after npm run clean -- --all
+  fs.mkdirSync(path.join(ROOT, 'output'), { recursive: true });
   const dir = fs.mkdtempSync(path.join(ROOT, 'output', '.test-'));
   process.env.GROUNDING_OUTPUT = dir;
   after(() => fs.rmSync(dir, { recursive: true, force: true }));
