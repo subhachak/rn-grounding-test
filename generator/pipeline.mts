@@ -2,7 +2,7 @@
 // calls, so a story generates identically however it was triggered.
 import fs from 'node:fs';
 import path from 'node:path';
-import { generateConfig, generateSteps } from './codegen.mts';
+import { generateConfig, generateStepFiles } from './codegen.mts';
 import { loadStory, uniqueSteps } from './features.mts';
 import { decideScenarios, decideStep } from './gate.mts';
 import { matchStep } from './mapper/rules.mts';
@@ -183,10 +183,16 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
 
   fs.mkdirSync(outDir, { recursive: true });
   const appIds = readAppIds();
+  // Step files by page (steps/common, steps/<platform>), replaced as a whole
+  // like the page objects. Earlier output kept one <platform>/steps.ts.
+  const stepsRoot = path.join(outDir, 'steps');
+  fs.rmSync(stepsRoot, { recursive: true, force: true });
+  for (const platform of PLATFORMS) fs.rmSync(path.join(outDir, platform), { recursive: true, force: true });
+  for (const [rel, content] of generateStepFiles(results, model, testData, stepsRoot, pageObjectsDir, story)) {
+    fs.mkdirSync(path.dirname(path.join(stepsRoot, rel)), { recursive: true });
+    fs.writeFileSync(path.join(stepsRoot, rel), content);
+  }
   for (const r of results) {
-    const stepsDir = path.join(outDir, r.platform);
-    fs.mkdirSync(stepsDir, { recursive: true });
-    fs.writeFileSync(path.join(stepsDir, 'steps.ts'), generateSteps(r, model, testData, stepsDir, pageObjectsDir));
     for (const target of ['sauce', 'local'] as const) {
       fs.writeFileSync(
         path.join(outDir, `wdio.${r.platform}${target === 'local' ? '.local' : ''}.conf.ts`),

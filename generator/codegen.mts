@@ -103,45 +103,162 @@ function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: 
   return [...notes, act(p.action, el, p.text, opts, helper)];
 }
 
-export function generateSteps(
-  result: PlatformResult,
-  model: PageModel,
-  testData: TestData,
-  stepsDir: string,
-  pageObjectsDir: string,
-): string {
+// One step definition as generated: its Cucumber pattern, its code, and
+// the page object it acts on (null for steps that act on no page).
+interface StepDef {
+  keyword: string;
+  pattern: string;
+  params: string[];
+  lines: string[];
+  page: string | null;
+  steps: string[]; // the step texts it covers, for the collision check
+}
+
+const QUOTED = /"([^"]*)"/g;
+const escapeRe = (t: string) => t.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+const isComment = (l: string) => l.trimStart().startsWith('//');
+
+// Steps that differ only in a quoted value ("member.entitled",
+// "member.restricted") share one definition with a parameter, when the value
+// goes straight into the code (a typed text, a record id) and every step of
+// that phrasing produces the same code. Otherwise each step keeps a literal
+// definition, so two definitions can never match the same step.
+function parameterize(group: { step: string; lines: string[]; page: string | null }[]): StepDef['lines'] | null {
+  const shape = (g: (typeof group)[number]) => {
+    const values = [...g.step.matchAll(QUOTED)].map((m) => m[1]);
+    const code = g.lines.filter((l) => !isComment(l)).join('\n');
+    let out = code;
+    for (const [i, v] of values.entries()) {
+      const lit = JSON.stringify(v);
+      if (!out.includes(lit)) return null; // a value the code does not use: keep literal
+      out = out.split(lit).join(`\u0000${i}`);
+    }
+    return out;
+  };
+  const shapes = group.map(shape);
+  if (shapes.some((x) => x === null) || new Set(shapes).size !== 1) return null;
+  const params = [...group[0].step.matchAll(QUOTED)].map((_, i) => `arg${i + 1}`);
+  // Comments come from the first use, with its values shown as parameters.
+  const first = group[0];
+  const values = [...first.step.matchAll(QUOTED)].map((m) => m[1]);
+  return first.lines.map((l) => {
+    let out = l;
+    for (const [i, v] of values.entries()) out = out.split(JSON.stringify(v)).join(isComment(l) ? `{${params[i]}}` : params[i]);
+    return out;
+  });
+}
+
+function platformDefs(result: PlatformResult, model: PageModel, testData: TestData): StepDef[] {
   // A step's keyword comes from its first use; Cucumber matches definitions
   // regardless of keyword, so this only affects readability.
   const kinds = new Map<string, StepKind>();
-  for (const s of result.feature.scenarios.flatMap((sc) => sc.steps)) {
-    if (!kinds.has(s.text)) kinds.set(s.text, s.kind);
+  for (const st of result.feature.scenarios.flatMap((sc) => sc.steps)) {
+    if (!kinds.has(st.text)) kinds.set(st.text, st.kind);
   }
+  const built = result.steps.map((d) => {
+    const pages = new Set<string>();
+    const lines = body(d, model, testData, pages, result.platform);
+    return { step: d.step, lines, page: [...pages][0] ?? null };
+  });
 
-  const pagesUsed = new Set<string>();
-  const defs: string[] = [];
-  for (const d of result.steps) {
-    defs.push(`${KEYWORD[kinds.get(d.step) ?? 'action']}(${stepPattern(d.step)}, async () => {`);
-    defs.push(...body(d, model, testData, pagesUsed, result.platform).map((l) => `  ${l}`));
-    defs.push('});', '');
+  // Group by phrasing with quoted values blanked out, in first-use order.
+  const groups = new Map<string, typeof built>();
+  for (const b of built) {
+    const template = b.step.replace(QUOTED, '"\u0000"');
+    groups.set(template, [...(groups.get(template) ?? []), b]);
+  }
+  const defs: StepDef[] = [];
+  for (const [template, group] of groups) {
+    const keyword = KEYWORD[kinds.get(group[0].step) ?? 'action'];
+    const lines = template.includes('\u0000') ? parameterize(group) : null;
+    if (lines) {
+      const params = [...group[0].step.matchAll(QUOTED)].map((_, i) => `arg${i + 1}`);
+      const pattern = `/^${template.split('"\u0000"').map(escapeRe).join('"([^"]*)"')}$/`;
+      defs.push({ keyword, pattern, params, lines, page: group[0].page, steps: group.map((g) => g.step) });
+    } else {
+      for (const g of group) defs.push({ keyword, pattern: stepPattern(g.step), params: [], lines: g.lines, page: g.page, steps: [g.step] });
+    }
+  }
+  // Exactly one definition per step, or Cucumber stops on ambiguity.
+  for (const b of built) {
+    const matching = defs.filter((d) => new RegExp(d.pattern.slice(1, -1)).test(b.step));
+    if (matching.length !== 1) throw new Error(`step "${b.step}" matches ${matching.length} definitions on ${result.platform}`);
+  }
+  return defs;
+}
+
+const render = (d: StepDef) => [
+  `${d.keyword}(${d.pattern}, async (${d.params.map((p) => `${p}: string`).join(', ')}) => {`,
+  ...d.lines.map((l) => `  ${l}`),
+  '});',
+  '',
+];
+
+// Step definitions split by the page object they act on, one file per page
+// (login.steps.ts beside login.page.ts), so pages and their steps can be
+// collected into a shared corpus. A definition identical on both platforms
+// goes in steps/common/; one that differs (a fallback validated on one
+// platform only, an approval given for one) goes in steps/<platform>/. Steps
+// acting on no page go in pending.steps.ts (not runnable yet) or
+// app.steps.ts (device-level, like back). Returns relative path -> content.
+export function generateStepFiles(
+  results: PlatformResult[],
+  model: PageModel,
+  testData: TestData,
+  stepsRoot: string,
+  pageObjectsDir: string,
+  story: string,
+): Map<string, string> {
+  const perPlatform = new Map(results.map((r) => [r.platform, platformDefs(r, model, testData)]));
+  const key = (d: StepDef) => `${d.pattern}\n${d.lines.join('\n')}`;
+  const everywhere = (d: StepDef) => results.every((r) => perPlatform.get(r.platform)!.some((o) => key(o) === key(d)));
+
+  const files = new Map<string, { dir: string; name: string; page: string | null; defs: StepDef[] }>();
+  const add = (dir: string, d: StepDef) => {
+    const name = d.page
+      ? d.page.replace(/\.page$/, '')
+      : d.lines.some((l) => l === `return 'pending';` || l.includes("return 'pending'"))
+        ? 'pending'
+        : 'app';
+    const rel = `${dir}/${name}.steps.ts`;
+    const file = files.get(rel) ?? { dir, name, page: d.page, defs: [] };
+    if (!file.defs.some((o) => key(o) === key(d))) file.defs.push(d);
+    files.set(rel, file);
+  };
+  for (const r of results) {
+    for (const d of perPlatform.get(r.platform)!) add(everywhere(d) ? 'common' : r.platform, d);
   }
 
   const classOf = new Map([...model.pages.values()].map((pg) => [pg.file, pg.cls]));
-  return [
-    `// GENERATED by generator/cli.mts from ${result.feature.file}. Do not edit;`,
-    `// fix the feature, test data, or app testIDs and regenerate.`,
-    `import { Given, When, Then } from '@wdio/cucumber-framework';`,
-    ...(defs.some((l) => l.includes('driver.')) ? [`import { driver } from '@wdio/globals';`] : []),
-    `import { ${[
+  const out = new Map<string, string>();
+  for (const [rel, f] of [...files].sort(([a], [b]) => a.localeCompare(b))) {
+    const dir = path.join(stepsRoot, f.dir);
+    const code = f.defs.flatMap(render);
+    const pages = [...new Set(f.defs.map((d) => d.page).filter((p): p is string => !!p))].sort();
+    const baseHelpers = [
       'expectShown',
       'expectHidden',
       'typeText',
-      ...(defs.some((l) => l.includes('validateFallback(')) ? ['validateFallback'] : []),
-      ...[...new Set(Object.values(VENDOR_ADAPTERS).map((a) => a.helper))].filter((h) => defs.some((l) => l.includes(`${h}(`))),
-    ].join(', ')} } from '${importPath(stepsDir, pageObjectsDir, 'base.page')}';`,
-    ...[...pagesUsed].sort().map((f) => `import ${classOf.get(f)} from '${importPath(stepsDir, pageObjectsDir, f)}';`),
-    '',
-    ...defs,
-  ].join('\n');
+      'validateFallback',
+      ...new Set(Object.values(VENDOR_ADAPTERS).map((a) => a.helper)),
+    ].filter((h) => code.some((l) => l.includes(`${h}(`)));
+    const where = f.dir === 'common' ? 'on both platforms' : `on ${f.dir} only`;
+    const what = f.page ? `acting on ${classOf.get(f.page)}` : f.name === 'pending' ? 'not runnable yet' : 'acting on the device';
+    out.set(
+      rel,
+      [
+        `// GENERATED for ${story}: steps ${what}, ${where}. Do not edit;`,
+        `// fix the feature, test data, or app testIDs and regenerate.`,
+        `import { Given, When, Then } from '@wdio/cucumber-framework';`,
+        ...(code.some((l) => l.includes('driver.')) ? [`import { driver } from '@wdio/globals';`] : []),
+        ...(baseHelpers.length ? [`import { ${baseHelpers.join(', ')} } from '${importPath(dir, pageObjectsDir, 'base.page')}';`] : []),
+        ...pages.map((pg) => `import ${classOf.get(pg)} from '${importPath(dir, pageObjectsDir, pg)}';`),
+        '',
+        ...code,
+      ].join('\n'),
+    );
+  }
+  return out;
 }
 
 export type { RunTarget };
@@ -251,7 +368,7 @@ ${connection}
   framework: 'cucumber',
   cucumberOpts: {
     // Cucumber resolves these from the working directory, not this file.
-    require: [path.resolve(__dirname, '${platform}/steps.ts')],
+    require: [path.resolve(__dirname, 'steps/common/*.steps.ts'), path.resolve(__dirname, 'steps/${platform}/*.steps.ts')],
     timeout: 120000,
   },
   reporters: ['spec'],

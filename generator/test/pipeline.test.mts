@@ -69,9 +69,11 @@ test('the pipeline runs end to end, rules are never rejected, and every locator 
   assert.equal(saved.summary.missing, saved.findings.filter((f: { category: string }) => f.category === 'missing').length);
 
   // Locators live only in page objects: step files never build a selector.
-  for (const platform of ['android', 'ios']) {
-    const steps = fs.readFileSync(path.join(out, platform, 'steps.ts'), 'utf-8');
-    assert.doesNotMatch(steps, /\$\(|~|UiSelector/, `${platform} steps contain a raw selector`);
+  const stepFiles = fs.readdirSync(path.join(out, 'steps'), { recursive: true }).map(String).filter((f) => f.endsWith('.steps.ts'));
+  assert.ok(stepFiles.length > 1);
+  for (const file of stepFiles) {
+    const steps = fs.readFileSync(path.join(out, 'steps', file), 'utf-8');
+    assert.doesNotMatch(steps, /\$\(|~|UiSelector/, `${file} contains a raw selector`);
   }
 
   // Every locator in the page objects is a registry value: static IDs

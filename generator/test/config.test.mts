@@ -92,7 +92,7 @@ test('a story generates from the configured layout, with Sauce Labs configs from
   assert.match(sauce, /terminateApp\('com\.example\.bank'\)/, 'restarts the configured app id');
   assert.match(sauce, /Android\.feature/, 'runs the configured feature file');
   assert.doesNotMatch(fs.readFileSync(path.join(out, 'wdio.ios.conf.ts'), 'utf-8'), /platformVersion/, 'no version pinned when none is configured');
-  assert.match(fs.readFileSync(path.join(out, 'android/steps.ts'), 'utf-8'), /I tap Transfer/);
+  assert.match(fs.readFileSync(path.join(out, 'steps/common/home.steps.ts'), 'utf-8'), /I tap Transfer/);
   // the gap is on a wrapper: the testID goes on <PrimaryButton>, which forwards it
   assert.match(fs.readFileSync(path.join(out, 'remediation/testids.patch'), 'utf-8'), /\+\s*<PrimaryButton testID="[a-z-]+" title="Pay"/);
 });

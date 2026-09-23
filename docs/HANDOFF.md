@@ -248,9 +248,12 @@ Per story, in `output/<story>/`:
 
 - `reports/latest.html`: device results, how each step was mapped and by
   whom, approvals, gaps, and the run log.
-- `pageobjects/`, `<platform>/steps.ts`, `wdio.<platform>.conf.ts` (Sauce
-  Labs) and `wdio.<platform>.local.conf.ts`: the generated tests, runnable on
-  their own with `npx wdio run output/<story>/wdio.android.conf.ts`.
+- `pageobjects/<page>.page.ts` and `steps/common/<page>.steps.ts` (plus
+  `steps/<platform>/` where a platform differs): page objects and their step
+  definitions, one file per page, with quoted values as parameters, ready to
+  collect into a shared corpus.
+- `wdio.<platform>.conf.ts` (Sauce Labs) and `wdio.<platform>.local.conf.ts`:
+  runnable on their own with `npx wdio run output/<story>/wdio.android.conf.ts`.
 - `remediation/testids.patch`: testIDs for elements that have none, in each
   screen's naming convention. Engineering applies it in the app repository:
   `git apply ../grounding-harness/output/<story>/remediation/testids.patch`.

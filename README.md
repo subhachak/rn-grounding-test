@@ -167,7 +167,8 @@ git-ignored:
 ```
 output/STORY-1/
   pageobjects/            WebdriverIO page objects (whole app), base.page.ts
-  android/steps.ts, ios/steps.ts
+  steps/common/<page>.steps.ts   step definitions by page, shared by both platforms
+  steps/<platform>/<page>.steps.ts   only where a platform differs
   wdio.<platform>.conf.ts, wdio.<platform>.local.conf.ts
   grounding-report.md|json
   registry.json           the locator registry these tests were generated from
@@ -232,12 +233,26 @@ the only AI involved, and only for steps the rules cannot match.
    noted in comments. `base.page.ts` is the only place that knows how
    locators surface per platform, how to assert container views on iOS,
    and how to type reliably (`typeText` focuses, waits for the keyboard,
-   and reads the field back). `output/<story>/<platform>/steps.ts` only
-   calls page objects (a test enforces that no step builds a selector);
-   each step cites its source line and whether rules or the agent mapped
-   it. Rejected and ungrounded steps are generated as `pending` with the
-   reason, so a gap shows up in the run rather than as a guessed locator.
-   Configs and the grounding report are written per story.
+   and reads the field back). Step definitions only call page objects (a
+   test enforces that no step builds a selector); each cites its source
+   line and whether rules or the agent mapped it. Rejected and ungrounded
+   steps are generated as `pending` with the reason, so a gap shows up in
+   the run rather than as a guessed locator. Configs and the grounding
+   report are written per story.
+
+   Step definitions are laid out for reuse, as a corpus of pages and their
+   steps: one file per page object (`steps/common/login.steps.ts` beside
+   `pageobjects/login.page.ts`), holding only steps that act on that page.
+   Steps that differ only in a quoted value share one parameterized
+   definition (`I enter username "member.entitled"` and `"member.restricted"`
+   become `/^I enter username "([^"]*)"$/`), when the value goes straight
+   into the code and every step of that phrasing does the same thing, so no
+   step can ever match two definitions. A definition identical on both
+   platforms is in `steps/common/`; one that differs (a fallback validated
+   on one platform, a platform-only step) is in `steps/<platform>/`. Steps
+   with no mapping yet are kept apart in `pending.steps.ts`, and device-level
+   steps (back) in `app.steps.ts`. Each platform's config loads
+   `steps/common` plus its own folder.
 
 ### Testability gaps: fix at source, fall back only when validated
 
