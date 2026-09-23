@@ -2,43 +2,96 @@
   "personas": {
     "entitled": {
       "username": "member.entitled",
-      "props": { "isEntitled": true }
+      "props": {
+        "isEntitled": true
+      }
     },
     "restricted": {
       "username": "member.restricted",
-      "props": { "isEntitled": false }
+      "props": {
+        "isEntitled": false
+      }
     }
   },
   "records": {
     "members": {
-      "entitled": { "username": "member.entitled" },
-      "restricted": { "username": "member.restricted" }
+      "entitled": {
+        "username": "member.entitled"
+      },
+      "restricted": {
+        "username": "member.restricted"
+      }
     },
     "plans": {
-      "p1": { "id": "p1", "name": "Growth Fund 2045", "entitled": true },
-      "p2": { "id": "p2", "name": "Stable Income Fund", "entitled": false },
-      "p3": { "id": "p3", "name": "Global ESG Balanced", "entitled": true }
+      "p1": {
+        "id": "p1",
+        "name": "Growth Fund 2045",
+        "entitled": true
+      },
+      "p2": {
+        "id": "p2",
+        "name": "Stable Income Fund",
+        "entitled": false
+      },
+      "p3": {
+        "id": "p3",
+        "name": "Global ESG Balanced",
+        "entitled": true
+      }
     },
-    "quickAmounts": {
-      "100": { "id": "100" },
-      "250": { "id": "250" },
-      "500": { "id": "500" }
+    "amounts": {
+      "100": {
+        "id": "100"
+      },
+      "250": {
+        "id": "250"
+      },
+      "500": {
+        "id": "500"
+      }
     },
-    "activityFilters": {
-      "all": { "key": "all" },
-      "contribution": { "key": "contribution" },
-      "dividend": { "key": "dividend" },
-      "fee": { "key": "fee" },
-      "withdrawal": { "key": "withdrawal" }
+    "filters": {
+      "all": {
+        "key": "all"
+      },
+      "contribution": {
+        "key": "contribution"
+      },
+      "dividend": {
+        "key": "dividend"
+      },
+      "fee": {
+        "key": "fee"
+      },
+      "withdrawal": {
+        "key": "withdrawal"
+      }
     },
-    "transactions": {
-      "t1": { "id": "t1", "kind": "contribution" },
-      "t3": { "id": "t3", "kind": "fee" },
-      "t6": { "id": "t6", "kind": "withdrawal" }
+    "activity": {
+      "t1": {
+        "id": "t1",
+        "kind": "contribution"
+      },
+      "t3": {
+        "id": "t3",
+        "kind": "fee"
+      },
+      "t6": {
+        "id": "t6",
+        "kind": "withdrawal"
+      }
     },
     "documents": {
-      "d1": { "id": "d1", "title": "Quarterly statement", "period": "Q2 2026" },
-      "d3": { "id": "d3", "title": "Annual tax summary", "period": "2025" }
+      "d1": {
+        "id": "d1",
+        "title": "Quarterly statement",
+        "period": "Q2 2026"
+      },
+      "d3": {
+        "id": "d3",
+        "title": "Annual tax summary",
+        "period": "2025"
+      }
     }
   }
 }

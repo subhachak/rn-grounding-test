@@ -11,4 +11,5 @@ export const HOME = {
   activityAction: 'home-activity-action',
   seeAllActivity: 'home-see-all-activity-button',
   managePlans: 'home-manage-plans-button',
+  avatarButton: 'home-avatar-button',
 } as const;

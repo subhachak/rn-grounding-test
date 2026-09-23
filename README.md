@@ -65,6 +65,22 @@ and an upsell instead of contributions.
 | Gaps: no testID, with text (Cancel), with only a placeholder (date of birth), with neither (frequency options) | Contribute, Enroll |
 | Vendor component (`@react-native-community/datetimepicker`) | Schedule |
 
+### Demo stories
+
+`features/` holds seven stories, each with an Android and an iOS feature
+file. Most steps map by rules; the rest are left on purpose for what
+follows them (Copilot, a fallback, a person):
+
+| Story | What it shows | Left for later |
+|---|---|---|
+| STORY-201 Signing in and out | both personas, profile badges, sign out; an error that depends on runtime state (a G5 warning, not a failure) | none |
+| STORY-202 Plans by membership | per-plan badges from test-data records; persona-gated plan details; an Android-only back step | `I open plan "p1"`: three lists hold plans, so Copilot maps it |
+| STORY-203 Making a contribution | quick amounts from records, a Scenario Outline, a runtime-state error | `I tap Cancel`: no testID, device-validated fallback; `I tap Quarterly`: no testID and no text, Copilot/QA |
+| STORY-204 Scheduling the first contribution | platform-gated UI: iOS date wheels through the vendor adapter, the Android date button | none |
+| STORY-205 Premier upsell for Basic members | a locked feature and the upgrade modal | none |
+| STORY-206 Activity and statements | list filters and rows from records | `I open document "d1"`: accessibilityLabel only, Copilot |
+| STORY-207 Enrolling | typing into a form | `I enter date of birth`: no testID, placeholder only |
+
 ## What the extractor sees through
 
 - **Constants**: `testID={IDS.login.submit}` or `testID={SUBMIT_ID}`,

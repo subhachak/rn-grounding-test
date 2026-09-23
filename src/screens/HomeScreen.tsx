@@ -29,9 +29,9 @@ export default function HomeScreen({ navigation }: any) {
             {firstName}
           </Text>
         </View>
-        <View style={styles.avatar}>
+        <TouchableOpacity testID={HOME.avatarButton} accessibilityLabel="Profile" onPress={() => navigation.navigate('Profile')} style={styles.avatar}>
           <Text style={styles.avatarText}>{member?.initials}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <LinearGradient testID={HOME.balanceCard} colors={[colors.navy, colors.navyLight]} style={styles.balanceCard}>

@@ -26,7 +26,7 @@ export default function ScheduleScreen({ navigation }: any) {
         </Text>
         {Platform.OS === 'ios' ? (
           <DateTimePicker
-            testID="schedule-date-picker"
+            testID="schedule-date-wheels"
             value={draft.startDate}
             mode="date"
             display="spinner"
