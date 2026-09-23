@@ -7,4 +7,4 @@ agent: Story Runner
 model: GPT-5.6 Luna
 ---
 
-Run the story given after the command (a folder under `features/`) end to end. If none is given, ask for it.
+Run the story given after the command (a folder in the configured features folder, `features/` by default) end to end. If none is given, ask for it.

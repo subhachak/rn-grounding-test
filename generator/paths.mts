@@ -1,23 +1,28 @@
-// Where everything lives. Base files (app, features, test data, generator)
-// are in git; everything a run produces for a story goes under
-// output/<story>/, which is git-ignored and removed by `npm run clean`.
-// GROUNDING_OUTPUT points the output root elsewhere (the tests use it so they
-// never touch a real story's output); it is read on every call so a test can
-// set it before running anything.
+// Where everything lives, from generator/config.mts (grounding.config.json,
+// or this repo's demo app by default). Everything a run produces for a story
+// goes under <output>/<story>/, which is git-ignored and removed by
+// `npm run clean`. GROUNDING_OUTPUT points the output root elsewhere (the
+// tests use it so they never touch a real story's output). Every value is
+// read on each call, so a test can switch config before running anything.
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { HARNESS_ROOT, loadConfig } from './config.mts';
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// The harness itself: generator, scripts, node_modules.
+export const ROOT = HARNESS_ROOT;
 
-// The app the generator reads: its src/, features/, test-data/, and app.json.
-// This repo's own app by default; GROUNDING_APP_ROOT points elsewhere (the
-// generator's tests use a frozen fixture app, so redesigning the demo app
-// never breaks them). Read on every call, like the output root.
-export const appRoot = () => (process.env.GROUNDING_APP_ROOT ? path.resolve(process.env.GROUNDING_APP_ROOT) : ROOT);
-export const featuresDir = () => path.join(appRoot(), 'features');
-export const defaultTestData = () => path.join(appRoot(), 'test-data', 'testdata.json');
+// The app under test, and the directory of its UI source that is scanned.
+export const appRoot = () => loadConfig().app.root;
+export const sourceDir = () => loadConfig().app.sourceDir;
+export const featuresDir = () => loadConfig().features.dir;
+export const defaultTestData = () => loadConfig().testData;
 
-export const outputRoot = () => (process.env.GROUNDING_OUTPUT ? path.resolve(process.env.GROUNDING_OUTPUT) : path.join(ROOT, 'output'));
+export const outputRoot = () => (process.env.GROUNDING_OUTPUT ? path.resolve(process.env.GROUNDING_OUTPUT) : loadConfig().output);
+
+// Paths shown to people: relative to the harness when inside it, else absolute.
+export const shown = (p: string) => {
+  const rel = path.relative(ROOT, p);
+  return rel.startsWith('..') || path.isAbsolute(rel) ? p : rel || '.';
+};
 
 export function storyOutput(story: string) {
   const root = path.join(outputRoot(), story);

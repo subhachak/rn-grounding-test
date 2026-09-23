@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AstBuilder, GherkinClassicTokenMatcher, Parser, compile } from '@cucumber/gherkin';
 import { IdGenerator, PickleStepType } from '@cucumber/messages';
+import { loadConfig } from './config.mts';
 import { PLATFORMS, type FeatureDoc, type Platform, type StepKind } from './types.mts';
 
 const KIND: Record<string, StepKind> = {
@@ -49,12 +50,14 @@ export function parseFeature(file: string, platform: Platform): FeatureDoc {
   };
 }
 
-// A story folder holds one feature per platform: <story>/android.feature and
-// <story>/ios.feature.
+// A story folder holds one feature per platform, by default
+// <story>/android.feature and <story>/ios.feature (features.android /
+// features.ios in the config to name them otherwise).
 export function loadStory(storyDir: string): Record<Platform, FeatureDoc> {
+  const { files } = loadConfig().features;
   const result = {} as Record<Platform, FeatureDoc>;
   for (const platform of PLATFORMS) {
-    const file = path.join(storyDir, `${platform}.feature`);
+    const file = path.join(storyDir, files[platform]);
     if (!fs.existsSync(file)) throw new Error(`missing ${file}`);
     result[platform] = parseFeature(file, platform);
   }

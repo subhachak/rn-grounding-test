@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Approval } from '../approvals.mts';
-import { ROOT, storyOutput } from '../paths.mts';
+import { shown, sourceDir, storyOutput } from '../paths.mts';
 import type { decideStory } from '../pipeline.mts';
 import { stepAction, stepDecision, stepEvidence, summarize } from '../report.mts';
 import { evidence } from '../registry.mts';
@@ -197,10 +197,10 @@ ${deviceSections}
 ${mappingSections}
 
 <h2>Registry</h2>
-<p>The tests were generated from ${registry.length} locator findings across ${screens} screens in <span class="mono">src/</span>: ${count('stable')} stable, ${count('templated-dynamic')} templated, ${count('expression-dynamic')} expression-based, and ${count('missing')} interactive elements with no locator. Saved as <span class="mono">${esc(path.relative(ROOT, registryFile))}</span>.</p>
+<p>The tests were generated from ${registry.length} locator findings across ${screens} screens in <span class="mono">${esc(shown(sourceDir()))}/</span>: ${count('stable')} stable, ${count('templated-dynamic')} templated, ${count('expression-dynamic')} expression-based, and ${count('missing')} interactive elements with no locator. Saved as <span class="mono">${esc(shown(registryFile))}</span>.</p>
 
 <h2>Testability gaps</h2>
-${testIds.length ? `<p>Elements with no testID, and the testID proposed in each screen's naming convention. Engineering applies <span class="mono">${esc(path.relative(ROOT, patchFile))}</span> with <span class="mono">git apply</span>.</p>
+${testIds.length ? `<p>Elements with no testID, and the testID proposed in each screen's naming convention. Engineering applies <span class="mono">${esc(shown(patchFile))}</span> with <span class="mono">git apply</span> from the app root.</p>
 <div class="scroll"><table><thead><tr><th>Element</th><th>Visible text</th><th>Location</th><th>Proposed testID</th></tr></thead><tbody>${gapRows}</tbody></table></div>
 <details><summary>Proposed patch</summary><pre>${esc(patch)}</pre></details>` : '<p class="muted">No gaps.</p>'}
 

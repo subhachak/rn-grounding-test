@@ -6,6 +6,16 @@ AI. The demo app, **Harbor Retirement**, is an Expo app with real screens,
 two personas, and the locator patterns real apps have, including the ones
 that make grounding hard.
 
+## Using it on another app
+
+Nothing in the harness is specific to this demo app. `grounding.config.json`
+(see `grounding.config.example.json`) says where the app source, stories,
+test data, and output are, and whether tests run on local devices or Sauce
+Labs; with no config file the defaults describe this repository.
+`npm run export -- <folder>` copies just the harness for another team,
+`npm run doctor` checks a setup, and [docs/HANDOFF.md](docs/HANDOFF.md) walks
+through setup, the config, and Sauce Labs provisioning.
+
 ## Structure
 
 ```
@@ -18,6 +28,9 @@ src/components/                Button, Card, Chip, Field, ListRow, Badge, ... (w
 src/navigation/RootNavigator.tsx   stack + tabs: Login, Enroll, Home / Plans / Activity / Profile,
                                    Plan details, Contribute -> Schedule -> Confirmation, Documents, Upgrade
 src/screens/                   one file per screen, each opening with the grounding case it shows
+grounding.config.example.json  every config field, documented (copy to grounding.config.json)
+docs/HANDOFF.md                running the harness on another app, and on Sauce Labs
+generator/config.mts           reads the config; generator/doctor.mts and export.mts
 scripts/extract-selectors.js   the AST extraction script
 features/<story>/              android.feature + ios.feature per story, plus the agent's proposals.json once it has run
 test-data/testdata.json        personas and records the gate resolves conditions and templates against

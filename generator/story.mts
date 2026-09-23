@@ -1,7 +1,9 @@
 // Run a whole story from the terminal, with commentary, pausing for human
 // approvals, and an HTML report at the end.
 //
-//   npm run story -- STORY-1 [--platform ios|android] [--no-devices] [--rebuild]
+//   npm run story -- STORY-1 [--platform ios|android] [--target local|sauce] [--no-devices] [--rebuild]
+//
+// --target defaults to run.target in grounding.config.json (local if unset).
 //
 // Approvals are asked here, item by item with the evidence; without a
 // terminal (e.g. CI) nothing is approved and those steps stay pending.
@@ -9,7 +11,8 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
-import { ROOT } from './pipeline.mts';
+import type { RunTarget } from './config.mts';
+import { shown } from './paths.mts';
 import { runStory, type RunIO } from './run/orchestrator.mts';
 import type { Platform } from './types.mts';
 
@@ -17,12 +20,17 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     platform: { type: 'string' },
+    target: { type: 'string' },
     'no-devices': { type: 'boolean', default: false },
     rebuild: { type: 'boolean', default: false },
   },
 });
 if (positionals.length !== 1) {
-  console.error('usage: npm run story -- <story> [--platform ios|android] [--no-devices] [--rebuild]');
+  console.error('usage: npm run story -- <story> [--platform ios|android] [--target local|sauce] [--no-devices] [--rebuild]');
+  process.exit(1);
+}
+if (values.target && values.target !== 'local' && values.target !== 'sauce') {
+  console.error(`--target must be local or sauce, not ${values.target}`);
   process.exit(1);
 }
 
@@ -67,5 +75,6 @@ const file = await runStory(path.basename(positionals[0]), io, {
   platforms: values.platform ? [values.platform as Platform] : undefined,
   devices: !values['no-devices'],
   rebuild: values.rebuild,
+  target: values.target as RunTarget | undefined,
 });
-console.log(`\nOpen the report: ${path.relative(ROOT, file)}`);
+console.log(`\nOpen the report: ${shown(file)}`);

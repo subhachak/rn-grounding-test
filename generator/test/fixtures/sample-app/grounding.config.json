@@ -1,0 +1,6 @@
+{
+  "app": { "root": "." },
+  "features": { "dir": "features" },
+  "testData": "test-data/testdata.json",
+  "output": "output"
+}

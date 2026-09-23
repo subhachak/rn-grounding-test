@@ -1,0 +1,61 @@
+// Copy to grounding.config.json and edit. Paths are relative to this file.
+// Only what differs from the defaults needs to be set; everything below
+// shows a default or an example. Comments are allowed.
+// Check a setup with: npm run doctor   (add --online for Sauce Labs)
+{
+  "app": {
+    // The React Native app's repository (default: this folder).
+    "root": "../mobile-app",
+    // The UI source to scan, relative to app.root (default: src).
+    "sourceDir": "src",
+    // Folders or files inside sourceDir not to scan (default: none).
+    "exclude": [],
+    // Import prefixes the app uses for its own code. tsconfig.json "paths"
+    // are read automatically; add aliases from babel-plugin-module-resolver
+    // or a tsconfig that "extends" another here. npm run doctor lists imports
+    // it cannot place.
+    "aliases": { "@/": "src/" },
+    // Required unless the app is Expo (app.json): the installed app ids.
+    "androidPackage": "com.example.mobile",
+    "iosBundleId": "com.example.mobile"
+  },
+
+  // One folder per story, holding one feature file per platform.
+  "features": { "dir": "features", "android": "android.feature", "ios": "ios.feature" },
+
+  // Personas and records the gate checks conditions and templated ids against.
+  "testData": "test-data/testdata.json",
+
+  // Everything a run produces, one folder per story (keep it git-ignored).
+  "output": "output",
+
+  "run": {
+    // "local" (simulator/emulator on this machine) or "sauce" (Sauce Labs).
+    // GROUNDING_TARGET or --target overrides it for one run.
+    "target": "sauce",
+    "sauce": {
+      // us (= us-west-1), us-east-4, eu (= eu-central-1). SAUCE_REGION overrides.
+      "region": "us",
+      // Sauce Connect tunnel, when the app must reach internal services.
+      // Leave out when not needed. SAUCE_TUNNEL_NAME overrides.
+      "tunnelName": "",
+      // Groups runs on the Sauce dashboard (default: the story id). SAUCE_BUILD overrides.
+      "build": "",
+      "android": {
+        // An app uploaded to Sauce storage. SAUCE_APP_ANDROID overrides.
+        "app": "storage:filename=mobile-app-release.apk",
+        // Exact device name or a regex. Real devices, e.g. "Google Pixel.*",
+        // or an emulator, e.g. "Android GoogleAPI Emulator".
+        "deviceName": "Google Pixel.*",
+        "platformVersion": "14"
+      },
+      "ios": {
+        // Real devices need a signed .ipa; simulators need the zipped .app.
+        "app": "storage:filename=MobileApp.ipa",
+        // e.g. "iPhone.*" (real device) or "iPhone Simulator".
+        "deviceName": "iPhone.*",
+        "platformVersion": "17"
+      }
+    }
+  }
+}

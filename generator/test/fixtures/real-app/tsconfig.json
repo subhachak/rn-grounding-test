@@ -1,0 +1,10 @@
+{
+  // like a production app: comments, a trailing comma, and path aliases
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@ids": ["src/constants/ids.ts"],
+    },
+  },
+}

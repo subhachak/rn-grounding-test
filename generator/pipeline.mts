@@ -14,7 +14,8 @@ import { renderMarkdown, summarize } from './report.mts';
 import { loadRegistry, loadTestData, registrySnapshot } from './registry.mts';
 import { PLATFORMS, type MappingInput, type Platform, type PlatformResult, type Proposal } from './types.mts';
 
-import { ROOT, appRoot, defaultTestData, featuresDir, storyOutput } from './paths.mts';
+import { loadConfig } from './config.mts';
+import { ROOT, appRoot, defaultTestData, featuresDir, shown, storyOutput } from './paths.mts';
 
 export { ROOT };
 
@@ -43,13 +44,13 @@ export function readAgentProposals(storyDir: string): AgentProposals {
 export function storyDir(story: string): string {
   if (!/^[A-Za-z0-9_-]+$/.test(story)) throw new Error(`invalid story id \`${story}\``);
   const dir = path.join(featuresDir(), story);
-  if (!fs.existsSync(dir)) throw new Error(`no story folder features/${story}`);
+  if (!fs.existsSync(dir)) throw new Error(`no story folder ${shown(dir)}`);
   return dir;
 }
 
 export function mappingInput(dir: string, platform: Platform, testDataFile = defaultTestData()): MappingInput {
   const features = loadStory(dir);
-  return { platform, steps: uniqueSteps(features[platform]), registry: loadRegistry(appRoot()), testData: loadTestData(testDataFile) };
+  return { platform, steps: uniqueSteps(features[platform]), registry: loadRegistry(), testData: loadTestData(testDataFile) };
 }
 
 // Steps the rule matcher cannot map, with the reason: the only ones the
@@ -100,11 +101,18 @@ export function propose(input: MappingInput, agent: AgentProposals, reviews: Rev
   });
 }
 
-// The installed app's id per platform, from the Expo config, so restarts
-// between scenarios target the app actually under test.
+// The installed app's id per platform (from app.json for an Expo app, else
+// app.androidPackage / app.iosBundleId in the config), so restarts between
+// scenarios target the app actually under test.
 function readAppIds(): Record<Platform, string> {
-  const { expo } = JSON.parse(fs.readFileSync(path.join(appRoot(), 'app.json'), 'utf-8'));
-  return { android: expo.android.package, ios: expo.ios.bundleIdentifier };
+  const { ids } = loadConfig().app;
+  const missing = PLATFORMS.filter((p) => !ids[p]);
+  if (missing.length) {
+    throw new Error(
+      `no app id for ${missing.join(' and ')}: set app.androidPackage / app.iosBundleId in grounding.config.json (only an Expo app.json provides them automatically)`,
+    );
+  }
+  return ids as Record<Platform, string>;
 }
 
 export interface GenerateOptions {
@@ -116,7 +124,7 @@ export interface GenerateOptions {
 // would emit, and what `npm run approve` shows a person before they sign off.
 export function decideStory(dir: string, opts: GenerateOptions = {}) {
   const features = loadStory(dir);
-  const registry = loadRegistry(appRoot());
+  const registry = loadRegistry();
   const testData = loadTestData(opts.testDataFile ?? defaultTestData());
   const agent = readAgentProposals(dir);
   const reviews = readReviews(dir);
@@ -149,7 +157,7 @@ export function decideStory(dir: string, opts: GenerateOptions = {}) {
     });
     return {
       platform,
-      feature: { ...feature, file: path.relative(ROOT, feature.file) },
+      feature: { ...feature, file: shown(feature.file) },
       steps,
       scenarios: decideScenarios(feature, steps, testData),
     };
@@ -182,7 +190,7 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
     for (const target of ['sauce', 'local'] as const) {
       fs.writeFileSync(
         path.join(outDir, `wdio.${r.platform}${target === 'local' ? '.local' : ''}.conf.ts`),
-        generateConfig(story, r.platform, features[r.platform].file, outDir, target, appIds[r.platform]),
+        generateConfig(story, r.platform, features[r.platform].file, outDir, target, appIds[r.platform], loadConfig()),
       );
     }
   }

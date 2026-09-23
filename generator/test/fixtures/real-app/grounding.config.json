@@ -1,0 +1,22 @@
+{
+  "app": {
+    "root": ".",
+    "sourceDir": "src",
+    "exclude": ["src/legacy"],
+    "aliases": { "~ui/": "src/components/" },
+    "androidPackage": "com.example.bank",
+    "iosBundleId": "com.example.Bank"
+  },
+  "features": { "dir": "qa/stories", "android": "Android.feature", "ios": "iOS.feature" },
+  "testData": "qa/data.json",
+  "output": "output",
+  "run": {
+    "target": "sauce",
+    "sauce": {
+      "region": "eu-central-1",
+      "tunnelName": "corp-tunnel",
+      "android": { "app": "storage:filename=bank.apk", "deviceName": "Samsung Galaxy S2[34].*", "platformVersion": "14" },
+      "ios": { "app": "storage:filename=Bank.ipa" }
+    }
+  }
+}

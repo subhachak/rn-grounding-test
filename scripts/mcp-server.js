@@ -21,8 +21,18 @@ const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio
 const { z } = require('zod');
 const { extract } = require('./extract-selectors');
 
+// Where the app is comes from grounding.config.json (generator/config.mts),
+// read on each call so a changed config needs no server restart.
+const { loadConfig } = require('../generator/config.mts');
+
 const ROOT = path.resolve(__dirname, '..');
-const SCAN_DIRS = { src: path.join(ROOT, 'src'), repo: ROOT };
+
+// scope src: the configured source directory; repo: the whole app root.
+function scan(scope) {
+  const { app } = loadConfig();
+  return extract(scope === 'repo' ? app.root : app.sourceDir, { aliases: app.aliases, exclude: app.exclude });
+}
+const appFile = (file) => path.relative(loadConfig().app.root, file);
 
 const VIEWS = {
   summary: null,
@@ -34,7 +44,7 @@ const VIEWS = {
 };
 
 function row(f) {
-  const where = `${path.relative(ROOT, f.file)}:${f.line}`;
+  const where = `${appFile(f.file)}:${f.line}`;
   const what =
     f.category === 'missing'
       ? `<${f.element}${f.description ? ` "${f.description}"` : ''}>${f.hasSpreadProps ? ' (spread props)' : ''}`
@@ -45,14 +55,16 @@ function row(f) {
 // Writes the full registry to disk and returns only a short confirmation,
 // so the (large) JSON never passes through the model.
 function save(scope, output) {
-  const { findings, summary } = extract(SCAN_DIRS[scope]);
+  const { findings, summary } = scan(scope);
   const registry = {
-    findings: findings.map((f) => ({ ...f, file: path.relative(ROOT, f.file) })),
+    findings: findings.map((f) => ({ ...f, file: appFile(f.file) })),
     summary,
   };
-  const outPath = path.resolve(ROOT, output);
-  if (path.relative(ROOT, outPath).startsWith('..')) {
-    throw new Error(`output must be inside the repo: ${output}`);
+  const outputRoot = loadConfig().output;
+  const outPath = output ? path.resolve(ROOT, output) : path.join(outputRoot, 'registry.json');
+  const inside = (dir) => !path.relative(dir, outPath).startsWith('..');
+  if (!inside(ROOT) && !inside(outputRoot)) {
+    throw new Error(`output must be inside the harness or the output folder: ${output}`);
   }
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(registry, null, 2) + '\n');
@@ -61,7 +73,7 @@ function save(scope, output) {
 }
 
 function render(scope, view, screen) {
-  const { findings } = extract(SCAN_DIRS[scope]);
+  const { findings } = scan(scope);
   const scoped = screen
     ? findings.filter((f) => f.screen.toLowerCase().includes(screen.toLowerCase()))
     : findings;
@@ -97,14 +109,14 @@ server.registerTool(
       'view: summary (per-screen counts), gaps (interactive elements with no locator), ' +
       'variants (locators gated by a condition), dynamic (templated/expression IDs), ' +
       'weak (accessibilityLabel/Identifier only), all (every finding). ' +
-      'scope: src (default) or repo (whole codebase). ' +
+      'scope: src (default, the configured source directory) or repo (the whole app). ' +
       'save: write the full JSON registry to `output` and return only a summary.',
     inputSchema: {
       view: z.enum(Object.keys(VIEWS)).default('summary'),
       screen: z.string().optional().describe('Case-insensitive screen name filter, e.g. "Plans"'),
       scope: z.enum(['src', 'repo']).default('src'),
       save: z.boolean().default(false),
-      output: z.string().default('output/registry.json').describe('Path relative to the repo root, used when save is true'),
+      output: z.string().optional().describe('Path relative to the harness root, used when save is true; default <output>/registry.json'),
     },
   },
   async ({ view, screen, scope, save: shouldSave, output }) => ({
@@ -473,14 +485,20 @@ async function registerRunTools() {
     'run_on_device',
     {
       description:
-        'Run the story on a local device for one platform: boots the simulator/emulator, builds the app if needed, ' +
-        'validates new fallback locators first (asking the person to approve them), then runs the suite. Takes minutes.',
-      inputSchema: { story: z.string(), platform: z.enum(PLATFORMS), rebuild: z.boolean().optional() },
+        'Run the story for one platform where grounding.config.json says (run.target): locally (boots the ' +
+        'simulator/emulator, builds the app if needed) or on Sauce Labs. Validates new fallback locators first ' +
+        '(asking the person to approve them), then runs the suite. Takes minutes. Leave target unset unless the person names one.',
+      inputSchema: {
+        story: z.string(),
+        platform: z.enum(PLATFORMS),
+        target: z.enum(['local', 'sauce']).optional(),
+        rebuild: z.boolean().optional(),
+      },
     },
-    async ({ story, platform, rebuild }, extra) => {
+    async ({ story, platform, target, rebuild }, extra) => {
       try {
         const { said, io } = makeIO(extra);
-        await orchestrator.phaseDevice(story, platform, io, { rebuild });
+        await orchestrator.phaseDevice(story, platform, io, { rebuild, target });
         return text(said.join('\n'));
       } catch (e) {
         return fail(e);

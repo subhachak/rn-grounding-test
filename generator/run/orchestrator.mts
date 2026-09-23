@@ -5,12 +5,13 @@
 // answered by a model.
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, storyOutput } from '../paths.mts';
+import { shown, storyOutput } from '../paths.mts';
 import { decideStory, generateStory, storyDir } from '../pipeline.mts';
 import { summarize } from '../report.mts';
 import { PLATFORMS, type Platform } from '../types.mts';
 import { applyApprovals, listPending, type Pending } from './approval-store.mts';
-import { ensureBuild, ensureDevice, runSuite, type SuiteResult } from './devices.mts';
+import { loadConfig, type RunTarget } from '../config.mts';
+import { ensureBuild, ensureDevice, runSuite, sauceTarget, type SuiteResult } from './devices.mts';
 import { renderHtmlReport } from './html.mts';
 
 export interface ApprovalDecision {
@@ -116,17 +117,24 @@ export async function phaseApprovals(story: string, io: RunIO, platforms: Platfo
   return decision.approved.length;
 }
 
-export async function phaseDevice(story: string, platform: Platform, io: RunIO, opts: { rebuild?: boolean } = {}): Promise<SuiteResult> {
+// The target is run.target in the config unless the caller names one.
+export async function phaseDevice(
+  story: string,
+  platform: Platform,
+  io: RunIO,
+  opts: { rebuild?: boolean; target?: RunTarget } = {},
+): Promise<SuiteResult> {
   const say = narrator(story, io);
   const dir = storyDir(story);
-  const device = await ensureDevice(platform, say);
-  const build = await ensureBuild(platform, say, opts.rebuild);
+  const target = opts.target ?? loadConfig().run.target;
+  const device = target === 'sauce' ? sauceTarget(platform, say) : await ensureDevice(platform, say);
+  const build = target === 'sauce' ? undefined : await ensureBuild(platform, say, opts.rebuild);
 
   const unvalidated = () =>
     decideStory(dir).results.find((r) => r.platform === platform)!.steps.filter((d) => d.fallback?.state === 'unvalidated');
   if (unvalidated().length) {
     say(`${unvalidated().length} fallback locator(s) are not yet validated on ${platform}; validating them on the device first.`);
-    const validation = await runSuite(story, platform, device, { validateFallbacks: true, say, build });
+    const validation = await runSuite(story, platform, device, { validateFallbacks: true, say, build, target });
     updateRun(story, (s) => s.suites.push(validation));
     generateStory(dir);
   }
@@ -136,7 +144,7 @@ export async function phaseDevice(story: string, platform: Platform, io: RunIO, 
   // validated, skipped asking, and ran them as pending without a word.
   if (listPending(dir, [platform]).length) await phaseApprovals(story, io, [platform]);
 
-  const result = await runSuite(story, platform, device, { validateFallbacks: false, say, build });
+  const result = await runSuite(story, platform, device, { validateFallbacks: false, say, build, target });
   updateRun(story, (s) => s.suites.push(result));
   const count = (s: string) => result.steps.filter((x) => x.status === s).length;
   say(`${platform} done: ${count('passed')} passed, ${count('failed')} failed, ${count('pending')} pending.`);
@@ -151,18 +159,22 @@ export function phaseReport(story: string, io: RunIO): string {
   const file = path.join(runDir(story), `report-${stamp}.html`);
   fs.writeFileSync(file, html);
   fs.writeFileSync(path.join(runDir(story), 'latest.html'), html);
-  say(`Report written: ${path.relative(ROOT, file)} (also ${path.relative(ROOT, path.join(runDir(story), 'latest.html'))}).`);
+  say(`Report written: ${shown(file)} (also ${shown(path.join(runDir(story), 'latest.html'))}).`);
   return file;
 }
 
-export async function runStory(story: string, io: RunIO, opts: { platforms?: Platform[]; devices?: boolean; rebuild?: boolean } = {}) {
+export async function runStory(
+  story: string,
+  io: RunIO,
+  opts: { platforms?: Platform[]; devices?: boolean; rebuild?: boolean; target?: RunTarget } = {},
+) {
   startRun(story);
   phaseScan(story, io);
   await phaseApprovals(story, io);
   if (opts.devices !== false) {
     for (const platform of opts.platforms ?? PLATFORMS) {
       try {
-        await phaseDevice(story, platform, io, { rebuild: opts.rebuild });
+        await phaseDevice(story, platform, io, { rebuild: opts.rebuild, target: opts.target });
       } catch (e) {
         narrator(story, io)(`${platform} device run failed: ${(e as Error).message}`);
       }

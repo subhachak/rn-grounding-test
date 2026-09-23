@@ -8,7 +8,8 @@ without needing a live device session.
 
 ## The tool
 
-`scripts/extract-selectors.js` walks `src/` and extracts every locator
+`scripts/extract-selectors.js` walks the app's UI source (`app.sourceDir` in
+`grounding.config.json`, `src/` by default) and extracts every locator
 attribute it finds via Babel AST parsing (not regex, not an LLM). Run it
 with:
 

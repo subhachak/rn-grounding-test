@@ -7,7 +7,8 @@ import { ROOT } from '../paths.mts';
 // (screens, STORY-101, test data), never the demo app in src/, so the demo
 // app can be redesigned freely. Set on import, before any test runs.
 export const FIXTURE_APP = path.join(ROOT, 'generator/test/fixtures/sample-app');
-process.env.GROUNDING_APP_ROOT = FIXTURE_APP;
+// The fixture app is configured like any other app, by its own config file.
+process.env.GROUNDING_CONFIG = path.join(FIXTURE_APP, 'grounding.config.json');
 
 // Points the output root at a throwaway folder for this test file, so tests
 // never read or write a real story's output (decisions, approvals, reports).

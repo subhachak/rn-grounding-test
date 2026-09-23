@@ -8,14 +8,16 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "ground": "node scripts/extract-selectors.js ./src",
-    "ground:save": "mkdir -p output && node scripts/extract-selectors.js ./src > output/registry.json && echo 'Wrote output/registry.json'",
+    "ground": "node scripts/extract-selectors.js",
+    "ground:save": "node scripts/extract-selectors.js --save",
     "generate": "node generator/cli.mts",
     "test:generator": "node --test \"generator/test/*.test.mts\"",
     "typecheck:generator": "tsc -p generator && tsc -p generator/output.tsconfig.json",
     "approve": "node generator/approve.mts",
     "story": "node generator/story.mts",
-    "clean": "node generator/clean.mts"
+    "clean": "node generator/clean.mts",
+    "doctor": "node generator/doctor.mts",
+    "export": "node generator/export.mts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

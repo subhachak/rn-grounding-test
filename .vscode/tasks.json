@@ -4,13 +4,13 @@
     {
       "label": "Ground Selectors (AST extraction)",
       "type": "shell",
-      "command": "node scripts/extract-selectors.js ./src",
+      "command": "npm run ground",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
         "panel": "dedicated"
       },
-      "detail": "Runs static AST extraction over src/screens and prints a categorized JSON registry (stable / templated-dynamic / expression-dynamic) to the terminal."
+      "detail": "Runs static AST extraction over the configured app source (grounding.config.json) and prints a categorized JSON registry (stable / templated-dynamic / expression-dynamic) to the terminal."
     },
     {
       "label": "Ground Selectors (save to output/registry.json)",
@@ -21,7 +21,7 @@
         "reveal": "always",
         "panel": "dedicated"
       },
-      "detail": "Same as above, but writes the output to output/registry.json (git-ignored)."
+      "detail": "Same as above, but writes the output to <output>/registry.json (git-ignored)."
     }
   ]
 }

@@ -7,4 +7,4 @@ agent: Match Critic
 model: GPT-5.6 Luna
 ---
 
-Review the rule matches for the story id given after the command (a folder under `features/`). If none is given, ask for it.
+Review the rule matches for the story id given after the command (a folder in the configured features folder, `features/` by default). If none is given, ask for it.

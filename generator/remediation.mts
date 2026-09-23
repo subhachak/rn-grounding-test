@@ -45,14 +45,21 @@ export function proposeTestIds(registry: RegistryFinding[]): TestIdProposal[] {
     });
 }
 
+// The name as written in JSX: Button, Picker.Item.
+const jsxName = (n: any): string => (n.type === 'JSXMemberExpression' ? `${jsxName(n.object)}.${n.property.name}` : n.name);
+
 // Insert ` testID="..."` right after the element name of the JSX opening tag
 // the extractor reported, located through the AST rather than by text search.
+// A gap on a wrapper (<Button title="Cancel">) is recorded as the native
+// element it renders, but the testID goes on the wrapper as written, which
+// forwards it.
 function patchLine(source: string, gap: RegistryFinding, testID: string): { line: number; before: string; after: string } {
   const ast = babelParser.parse(source, { sourceType: 'module', plugins: ['jsx', 'typescript'] });
+  const tag = gap.component ?? gap.element;
   let insertAt: number | null = null;
   const visit = (node: any): void => {
     if (!node || typeof node !== 'object' || insertAt !== null) return;
-    if (node.type === 'JSXOpeningElement' && node.loc.start.line === gap.line && node.name.name === gap.element) {
+    if (node.type === 'JSXOpeningElement' && node.loc.start.line === gap.line && jsxName(node.name) === tag) {
       insertAt = node.name.end;
       return;
     }
@@ -64,7 +71,7 @@ function patchLine(source: string, gap: RegistryFinding, testID: string): { line
     }
   };
   visit(ast.program);
-  if (insertAt === null) throw new Error(`no <${gap.element}> opening tag at ${evidence(gap)}`);
+  if (insertAt === null) throw new Error(`no <${tag}> opening tag at ${evidence(gap)}`);
   const patched = source.slice(0, insertAt) + ` testID="${testID}"` + source.slice(insertAt);
   const idx = gap.line - 1;
   return { line: gap.line, before: source.split('\n')[idx], after: patched.split('\n')[idx] };

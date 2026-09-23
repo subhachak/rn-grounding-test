@@ -7,4 +7,4 @@ agent: Appium Test Generator
 model: GPT-5.6 Luna
 ---
 
-Generate the Appium tests for the story id given after the command (a folder under `features/` holding `android.feature` and `ios.feature`). If none is given, ask for it.
+Generate the Appium tests for the story id given after the command (a folder in the configured features folder, `features/` by default, holding one feature file per platform). If none is given, ask for it.

@@ -1,12 +1,16 @@
-// Local devices for a run: boot the simulator or emulator, build the app when
-// its binary is missing (or on request), and run a generated suite while
-// streaming each step's result. Machine paths default to this Mac's setup
-// (README) and can be overridden with the usual environment variables.
+// Where a run happens. Local (run.target "local"): boot the simulator or
+// emulator, build the app (an Expo app, from the configured app root) when its
+// binary is missing or stale, and run the local suite. Sauce Labs (run.target
+// "sauce"): no device or build here; check the credentials and app reference,
+// and run the Sauce Labs suite. Either way each step's result streams back as
+// it lands. Local machine paths default to this Mac's setup (README) and can
+// be overridden with the usual environment variables.
 import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ROOT, storyOutput } from '../paths.mts';
+import { loadConfig, type RunTarget } from '../config.mts';
+import { ROOT, appRoot, storyOutput } from '../paths.mts';
 import { readStamp, sourceFingerprint, staleReason, writeStamp, type BuildStamp } from './build-fingerprint.mts';
 import type { Platform } from '../types.mts';
 
@@ -19,16 +23,16 @@ const JAVA_HOME = process.env.JAVA_HOME ?? '/opt/homebrew/opt/openjdk@17';
 const ADB = path.join(ANDROID_HOME, 'platform-tools/adb');
 const env = { ...process.env, ANDROID_HOME, JAVA_HOME, PATH: `/opt/homebrew/bin:${process.env.PATH}`, LANG: 'en_US.UTF-8' };
 
-export const APP_BINARY: Record<Platform, string> = {
-  android: path.join(ROOT, 'android/app/build/outputs/apk/release/app-release.apk'),
-  ios: path.join(ROOT, 'ios/build/Build/Products/Release-iphonesimulator/rngroundingtest.app'),
+const APP_BINARY: Record<Platform, () => string> = {
+  android: () => path.join(appRoot(), 'android/app/build/outputs/apk/release/app-release.apk'),
+  ios: () => path.join(appRoot(), 'ios/build/Build/Products/Release-iphonesimulator/rngroundingtest.app'),
 };
 
 // Kept inside each platform's (git-ignored) build folder, so deleting the
 // build also deletes its record.
-const BUILD_STAMP: Record<Platform, string> = {
-  android: path.join(ROOT, 'android/app/build/source-fingerprint.json'),
-  ios: path.join(ROOT, 'ios/build/source-fingerprint.json'),
+const BUILD_STAMP: Record<Platform, () => string> = {
+  android: () => path.join(appRoot(), 'android/app/build/source-fingerprint.json'),
+  ios: () => path.join(appRoot(), 'ios/build/source-fingerprint.json'),
 };
 
 const sh = (cmd: string, args: string[]) => execFileSync(cmd, args, { encoding: 'utf-8', env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -37,7 +41,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Streams a long command, reporting only lines that match `milestone`.
 function stream(cmd: string, args: string[], opts: { cwd?: string; say: Say; milestone: RegExp; extraEnv?: Record<string, string> }) {
   return new Promise<void>((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd: opts.cwd ?? ROOT, env: { ...env, ...opts.extraEnv } });
+    const child = spawn(cmd, args, { cwd: opts.cwd ?? appRoot(), env: { ...env, ...opts.extraEnv } });
     let tail = '';
     const onData = (buf: Buffer) => {
       for (const line of buf.toString().split('\n')) {
@@ -98,9 +102,9 @@ export async function ensureDevice(platform: Platform, say: Say): Promise<string
 // was built from no longer matches the current source; returns the stamp of
 // the build the run will use.
 export async function ensureBuild(platform: Platform, say: Say, rebuild = false): Promise<BuildStamp> {
-  const current = sourceFingerprint(ROOT);
-  const stamp = readStamp(BUILD_STAMP[platform]);
-  const stale = fs.existsSync(APP_BINARY[platform]) ? staleReason(stamp, current) : 'no build yet';
+  const current = sourceFingerprint(appRoot());
+  const stamp = readStamp(BUILD_STAMP[platform]());
+  const stale = fs.existsSync(APP_BINARY[platform]()) ? staleReason(stamp, current) : 'no build yet';
   if (!rebuild && !stale && stamp) {
     say(`Using the existing ${platform} build: it matches the current app source (${current.bundle}).`);
     return stamp;
@@ -109,7 +113,7 @@ export async function ensureBuild(platform: Platform, say: Say, rebuild = false)
   // A native change (config, dependencies) needs the native project
   // regenerated, not just recompiled.
   const nativeChanged = stamp !== null && stamp.native !== current.native;
-  if (!fs.existsSync(path.join(ROOT, platform)) || nativeChanged) {
+  if (!fs.existsSync(path.join(appRoot(), platform)) || nativeChanged) {
     await stream('npx', ['expo', 'prebuild', '--platform', platform, ...(platform === 'android' ? ['--no-install'] : [])], {
       say,
       milestone: /Finished prebuild|Installed CocoaPods|Error/,
@@ -126,18 +130,35 @@ export async function ensureBuild(platform: Platform, say: Say, rebuild = false)
   } else {
     // In-process Kotlin: the Kotlin compile daemon hung the first build.
     await stream('./gradlew', ['assembleRelease', '--console=plain', '-Pkotlin.compiler.execution.strategy=in-process'], {
-      cwd: path.join(ROOT, 'android'),
+      cwd: path.join(appRoot(), 'android'),
       say,
       milestone: /BUILD SUCCESSFUL|BUILD FAILED|What went wrong/,
       extraEnv: { NODE_ENV: 'production' },
     });
     try {
-      execFileSync('./gradlew', ['--stop'], { cwd: path.join(ROOT, 'android'), env, stdio: 'ignore' });
+      execFileSync('./gradlew', ['--stop'], { cwd: path.join(appRoot(), 'android'), env, stdio: 'ignore' });
     } catch {
       // the daemon may already be gone
     }
   }
-  return writeStamp(BUILD_STAMP[platform], current);
+  return writeStamp(BUILD_STAMP[platform](), current);
+}
+
+// A Sauce Labs run needs no local device or build, only credentials and an
+// app already uploaded to Sauce storage. Checked up front so a missing
+// setting fails in a sentence, not in a WebdriverIO stack trace. Returns the
+// device label for the report.
+export function sauceTarget(platform: Platform, say: Say): string {
+  const { sauce } = loadConfig().run;
+  const device = sauce.devices[platform];
+  const missing = ['SAUCE_USERNAME', 'SAUCE_ACCESS_KEY'].filter((v) => !process.env[v]);
+  if (missing.length) throw new Error(`Sauce Labs run needs ${missing.join(' and ')} set in the environment`);
+  const appEnv = `SAUCE_APP_${platform.toUpperCase()}`;
+  const app = process.env[appEnv] ?? device.app;
+  if (!app) throw new Error(`no ${platform} app for Sauce Labs: set run.sauce.${platform}.app in grounding.config.json or ${appEnv}`);
+  const label = `Sauce Labs ${device.deviceName}${device.platformVersion ? ` (${platform} ${device.platformVersion})` : ''}, ${sauce.region}`;
+  say(`Running on ${label} with app ${app}${sauce.tunnelName ? ` through tunnel ${sauce.tunnelName}` : ''}.`);
+  return label;
 }
 
 export interface StepResult {
@@ -153,7 +174,8 @@ export interface StepResult {
 export interface SuiteResult {
   platform: Platform;
   device: string;
-  build?: BuildStamp; // the app source the tested build was made from
+  target?: RunTarget;
+  build?: BuildStamp; // the app source the tested build was made from (local builds only)
   mode: 'validate-fallbacks' | 'normal';
   startedAt: string;
   finishedAt: string;
@@ -166,10 +188,11 @@ export async function runSuite(
   story: string,
   platform: Platform,
   device: string,
-  opts: { validateFallbacks: boolean; say: Say; build?: BuildStamp },
+  opts: { validateFallbacks: boolean; say: Say; build?: BuildStamp; target?: RunTarget },
 ): Promise<SuiteResult> {
+  const target = opts.target ?? 'local';
   const resultsFile = path.join(os.tmpdir(), `results-${story}-${platform}-${process.pid}-${Date.now()}.jsonl`);
-  const conf = path.join(storyOutput(story).root, `wdio.${platform}.local.conf.ts`);
+  const conf = path.join(storyOutput(story).root, `wdio.${platform}${target === 'local' ? '.local' : ''}.conf.ts`);
   const startedAt = new Date().toISOString();
   opts.say(`Running ${story} on the ${device}${opts.validateFallbacks ? ' in fallback-validation mode' : ''}.`);
 
@@ -216,6 +239,7 @@ export async function runSuite(
   return {
     platform,
     device,
+    target,
     ...(opts.build && { build: opts.build }),
     mode: opts.validateFallbacks ? 'validate-fallbacks' : 'normal',
     startedAt,

@@ -2,7 +2,7 @@
 // clean_story MCP tool so both refuse the same unsafe names.
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, outputRoot, storyOutput } from '../paths.mts';
+import { outputRoot, shown, storyOutput } from '../paths.mts';
 
 // Resolves what would be removed, or throws for a name that could reach
 // outside the output root (e.g. "../src").
@@ -29,7 +29,7 @@ export function describeOutput(target: string): string[] {
 }
 
 export function removeOutput(target: string): string {
-  if (!fs.existsSync(target)) return `Nothing to clean: ${path.relative(ROOT, target) || target} does not exist.`;
+  if (!fs.existsSync(target)) return `Nothing to clean: ${shown(target)} does not exist.`;
   fs.rmSync(target, { recursive: true, force: true });
-  return `Removed ${path.relative(ROOT, target)}/`;
+  return `Removed ${shown(target)}/`;
 }

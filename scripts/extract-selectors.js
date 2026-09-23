@@ -13,7 +13,7 @@
 //                     (medium) > accessibilityLabel (weak, it's user-facing
 //                     copy that gets localized and reworded).
 //
-// Usage: node scripts/extract-selectors.js ./src > output/registry.json
+// Usage: node scripts/extract-selectors.js [dir] [--save]   (npm run ground / ground:save)
 
 const fs = require('fs');
 const path = require('path');
@@ -21,6 +21,8 @@ const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 
 let results = [];
+// Import prefix -> absolute directory ("@/" -> /app/src/), set per extract().
+let aliases = {};
 
 const LOCATOR_STRENGTH = {
   testID: 'strong',
@@ -52,8 +54,11 @@ const INTERACTION_PROPS = new Set([
 // Skipped so a scan from the repo root only sees app source: dependencies,
 // native/generated build output, hidden dirs (.git, .expo), and tests, whose
 // JSX would otherwise be reported as if it were real UI.
-const SKIP_DIRS = new Set(['node_modules', 'ios', 'android', 'build', 'dist', 'coverage', 'web-build', '__tests__', 'fixtures']);
-const TEST_FILE = /\.(test|spec)\.(jsx?|tsx?)$/;
+const SKIP_DIRS = new Set(['node_modules', 'ios', 'android', 'build', 'dist', 'coverage', 'web-build', '__tests__', '__mocks__', 'e2e', 'fixtures']);
+// Tests, Storybook stories, and type declarations are not rendered UI.
+const TEST_FILE = /(\.(test|spec|stories)\.(jsx?|tsx?)|\.d\.ts)$/;
+// Absolute paths the caller excludes (the config's app.exclude), set per extract().
+let excluded = [];
 
 // Files in a fixed order, so the registry (and everything generated from it)
 // is identical on every machine; readdir order differs between filesystems.
@@ -62,8 +67,8 @@ function collectFiles(dir, out = []) {
     const fullPath = path.join(dir, file);
     const stat = fs.statSync(fullPath);
     if (stat.isDirectory()) {
-      if (!SKIP_DIRS.has(file) && !file.startsWith('.')) collectFiles(fullPath, out);
-    } else if (/\.(jsx?|tsx?)$/.test(file) && !TEST_FILE.test(file)) {
+      if (!SKIP_DIRS.has(file) && !file.startsWith('.') && !excluded.includes(path.resolve(fullPath))) collectFiles(fullPath, out);
+    } else if (/\.(jsx?|tsx?)$/.test(file) && !TEST_FILE.test(file) && !excluded.includes(path.resolve(fullPath))) {
       out.push(fullPath);
     }
   }
@@ -145,7 +150,7 @@ function parseModule(file) {
     console.error(`Skipping ${file}: parse error (${e.message})`);
     return null;
   }
-  const mod = { file, code, ast, imports: {}, consts: {}, exports: {}, components: {} };
+  const mod = { file, code, ast, imports: {}, consts: {}, exports: {}, components: {}, reexports: [] };
   for (const node of ast.program.body) {
     if (node.type === 'ImportDeclaration') {
       for (const spec of node.specifiers) {
@@ -153,6 +158,19 @@ function parseModule(file) {
           spec.type === 'ImportDefaultSpecifier' ? 'default' : spec.type === 'ImportNamespaceSpecifier' ? '*' : spec.imported.name;
         mod.imports[spec.local.name] = { source: node.source.value, imported };
       }
+    }
+    // Barrel files: export { Button } from './Button', export * from './Card'.
+    if (node.type === 'ExportAllDeclaration') {
+      mod.reexports.push({ source: node.source.value, all: true });
+      continue;
+    }
+    if (node.type === 'ExportNamedDeclaration' && node.source) {
+      for (const spec of node.specifiers) {
+        const local = spec.type === 'ExportNamespaceSpecifier' ? '*' : spec.local.name;
+        const exported = spec.exported.type === 'StringLiteral' ? spec.exported.value : spec.exported.name;
+        mod.reexports.push({ source: node.source.value, local, exported });
+      }
+      continue;
     }
     const decl = node.type === 'ExportNamedDeclaration' || node.type === 'ExportDefaultDeclaration' ? node.declaration : node;
     if (!decl) {
@@ -210,14 +228,48 @@ function literalValue(node) {
   return undefined;
 }
 
+// The absolute path an import source points into, for relative imports and
+// configured aliases (tsconfig paths); null for packages.
+function sourceBase(fromFile, source) {
+  if (source.startsWith('.')) return path.resolve(path.dirname(fromFile), source);
+  const prefix = Object.keys(aliases)
+    .filter((a) => source === a || source.startsWith(a.endsWith('/') || a.endsWith(path.sep) ? a : a + '/'))
+    .sort((a, b) => b.length - a.length)[0];
+  if (prefix === undefined) return null;
+  return path.join(aliases[prefix], source.slice(prefix.length));
+}
+
+const isLocalSource = (fromFile, source) => sourceBase(fromFile, source) !== null;
+
+function moduleAt(fromFile, source, modules) {
+  const base = sourceBase(fromFile, source);
+  if (!base) return null;
+  const candidates = [base, ...EXTENSIONS.map((e) => base + e), ...EXTENSIONS.map((e) => path.join(base, 'index' + e))];
+  return candidates.map((c) => modules.get(c)).find(Boolean) || null;
+}
+
+// Where an exported name is actually declared, following barrel re-exports.
+function resolveExport(target, exported, modules, depth = 0) {
+  if (!target || depth > 10) return null;
+  if (exported in target.exports) return { target, name: target.exports[exported] };
+  for (const r of target.reexports) {
+    if (r.all) {
+      if (exported === 'default') continue;
+      const found = resolveExport(moduleAt(target.file, r.source, modules), exported, modules, depth + 1);
+      if (found) return found;
+    } else if (r.exported === exported && r.local !== '*') {
+      return resolveExport(moduleAt(target.file, r.source, modules), r.local, modules, depth + 1);
+    }
+  }
+  return null;
+}
+
 function resolveImport(mod, localName, modules) {
   const imp = mod.imports[localName];
-  if (!imp || !imp.source.startsWith('.')) return null;
-  const base = path.resolve(path.dirname(mod.file), imp.source);
-  const candidates = [base, ...EXTENSIONS.map((e) => base + e), ...EXTENSIONS.map((e) => path.join(base, 'index' + e))];
-  const target = candidates.map((c) => modules.get(c)).find(Boolean);
+  if (!imp || imp.imported === '*') return null;
+  const target = moduleAt(mod.file, imp.source, modules);
   if (!target) return null;
-  return { target, name: imp.imported === 'default' ? target.exports.default : target.exports[imp.imported] ?? imp.imported };
+  return resolveExport(target, imp.imported, modules) || { target, name: imp.imported };
 }
 
 // The literal value of a constant reference (SUBMIT_ID, IDS.login.submit),
@@ -339,7 +391,7 @@ function extractFromModule(mod, modules, wrappers) {
       const opening = elementPath.node.openingElement;
       const written = jsxName(opening.name);
       const importSource = mod.imports[written.split('.')[0]] && mod.imports[written.split('.')[0]].source;
-      const vendor = importSource && importSource !== 'react-native' && !importSource.startsWith('.') ? { module: importSource } : {};
+      const vendor = importSource && importSource !== 'react-native' && !isLocalSource(mod.file, importSource) ? { module: importSource } : {};
       // A local wrapper is recorded as the native element it renders, so
       // interaction checks (tap, type) apply to what is really on screen.
       const wrapper = componentFor(written, mod, modules);
@@ -473,8 +525,12 @@ function summarize(findings) {
   return summary;
 }
 
-function extract(srcDir) {
+// options.aliases: import prefix -> directory, e.g. { '@/': '/app/src/' }.
+// options.exclude: directories or files (absolute) not to scan.
+function extract(srcDir, options = {}) {
   results = [];
+  excluded = (options.exclude || []).map((p) => path.resolve(p));
+  aliases = Object.fromEntries(Object.entries(options.aliases || {}).map(([k, v]) => [k, path.resolve(v)]));
   const modules = new Map();
   for (const file of collectFiles(srcDir)) {
     const mod = parseModule(file);
@@ -490,6 +546,20 @@ function extract(srcDir) {
 
 module.exports = { extract, summarize };
 
+// With no directory, scans the app in grounding.config.json (or the demo
+// app); --save writes <output>/registry.json instead of printing.
 if (require.main === module) {
-  console.log(JSON.stringify(extract(process.argv[2] || './src'), null, 2));
+  const { loadConfig } = require('../generator/config.mts');
+  const config = loadConfig();
+  const args = process.argv.slice(2);
+  const dirArg = args.find((a) => !a.startsWith('--'));
+  const registry = extract(dirArg ? path.resolve(dirArg) : config.app.sourceDir, { aliases: config.app.aliases, exclude: config.app.exclude });
+  if (args.includes('--save')) {
+    const file = path.join(config.output, 'registry.json');
+    fs.mkdirSync(config.output, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(registry, null, 2) + '\n');
+    console.log(`Wrote ${file}: ${registry.findings.length} findings.`);
+  } else {
+    console.log(JSON.stringify(registry, null, 2));
+  }
 }
