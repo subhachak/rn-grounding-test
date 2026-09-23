@@ -5,26 +5,18 @@
 //   npm run clean -- --all        # every story, i.e. all of output/
 //
 // Only ever deletes inside the output root; base files are never touched.
-import fs from 'node:fs';
-import path from 'node:path';
+// In Copilot Chat: /clean-story STORY-101 (asks you to confirm first).
 import { parseArgs } from 'node:util';
-import { ROOT, outputRoot, storyOutput } from './paths.mts';
+import { cleanTarget, removeOutput } from './run/clean-store.mts';
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: { all: { type: 'boolean', default: false } } });
 if (values.all === (positionals.length === 1) || positionals.length > 1) {
   console.error('usage: npm run clean -- <story> | --all');
   process.exit(1);
 }
-
-const target = values.all ? outputRoot() : storyOutput(positionals[0]).root;
-// A story name like "../src" must not reach outside the output root.
-if (!values.all && (!/^[A-Za-z0-9_-]+$/.test(positionals[0]) || path.dirname(target) !== outputRoot())) {
-  console.error(`invalid story id \`${positionals[0]}\``);
+try {
+  console.log(removeOutput(cleanTarget(values.all ? null : positionals[0])));
+} catch (e) {
+  console.error((e as Error).message);
   process.exit(1);
-}
-if (!fs.existsSync(target)) {
-  console.log(`Nothing to clean: ${path.relative(ROOT, target) || target} does not exist.`);
-} else {
-  fs.rmSync(target, { recursive: true, force: true });
-  console.log(`Removed ${path.relative(ROOT, target)}/`);
 }

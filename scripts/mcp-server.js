@@ -4,6 +4,7 @@
 //   get_rule_matches, submit_review        - "Match Critic" agent
 //   story_overview, request_approvals,
 //   run_on_device, build_report            - "Story Runner" agent (with all of the above)
+//   clean_story                            - "Story Cleaner" agent
 //
 // Output is deliberately compact, tab-separated rows filtered by `view`,
 // instead of the full JSON registry: every token returned here is billed as
@@ -485,7 +486,50 @@ async function registerRunTools() {
   );
 }
 
+// Resetting a story's output for the "Story Cleaner" agent. Deleting also
+// removes the story's approvals and validations, so the tool asks the person
+// to confirm through a VS Code form; the agent cannot confirm for them.
+async function registerCleanTools() {
+  const { cleanTarget, describeOutput, removeOutput } = await import('../generator/run/clean-store.mts');
+
+  server.registerTool(
+    'clean_story',
+    {
+      description:
+        'Delete everything generated for a story (output/<story>/), or all stories with all=true, after the person ' +
+        'confirms in a VS Code form. Includes that story\'s approvals and validations.',
+      inputSchema: { story: z.string().optional().describe('Story folder name, e.g. "STORY-101"'), all: z.boolean().optional() },
+    },
+    async ({ story, all }) => {
+      const reply = (t, isError = false) => ({ content: [{ type: 'text', text: t }], ...(isError && { isError: true }) });
+      try {
+        if (!all === !story) return reply('Give a story id, or all=true (not both).', true);
+        const target = cleanTarget(all ? null : story);
+        const contents = describeOutput(target);
+        if (!contents.length) return reply(removeOutput(target));
+        if (!server.server.getClientCapabilities()?.elicitation) {
+          return reply(`Not cleaned: this client cannot ask you to confirm. Run in a terminal: npm run clean -- ${all ? '--all' : story}`);
+        }
+        const what = all ? 'every story (all of output/)' : `story ${story} (${path.relative(ROOT, target)}/)`;
+        const answer = await server.server.elicitInput({
+          message: `Delete everything generated for ${what}? This includes:\n- ${all ? 'every story\'s mappings, reviews, validations, approvals, and reports' : contents.join('\n- ')}\n\nApprovals and validations are gone for good; the next run asks for them again.`,
+          requestedSchema: {
+            type: 'object',
+            properties: { confirm: { type: 'boolean', title: `Yes, delete ${all ? 'all output' : story}`, default: false } },
+            required: ['confirm'],
+          },
+        });
+        if (answer.action !== 'accept' || answer.content?.confirm !== true) return reply('Not cleaned: you did not confirm.');
+        return reply(removeOutput(target));
+      } catch (e) {
+        return reply(`Error: ${e.message}`, true);
+      }
+    },
+  );
+}
+
 registerGenerationTools()
   .then(registerCriticTools)
   .then(registerRunTools)
+  .then(registerCleanTools)
   .then(() => server.connect(new StdioServerTransport()));

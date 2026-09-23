@@ -146,6 +146,10 @@ npm run clean -- STORY-101     # reset one story
 npm run clean -- --all         # reset every story
 ```
 
+In Copilot Chat: `/clean-story STORY-101` (or `/clean-story all`, agent
+**Story Cleaner**). It shows what the deletion includes and asks you to
+confirm in a VS Code form first; the agent cannot confirm for you.
+
 Because decisions and approvals live in `output/`, cleaning a story also
 clears its approvals and validations; the next run asks for them again.
 Keep the HTML report if you need the audit trail.
