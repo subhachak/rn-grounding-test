@@ -219,7 +219,15 @@ export function generateConfig(
       },`
       : '';
   return `${header}
+import fs from 'node:fs';
 import path from 'node:path';
+
+// With RESULTS_FILE set (npm run story, the run_on_device tool), each step's
+// outcome is appended as a JSON line while the suite runs, for live
+// commentary and the run report.
+const record = (entry: Record<string, unknown>) => {
+  if (process.env.RESULTS_FILE) fs.appendFileSync(process.env.RESULTS_FILE, JSON.stringify({ ...entry, at: new Date().toISOString() }) + '\\n');
+};
 
 export const config: WebdriverIO.Config = {
 ${connection}
@@ -243,9 +251,17 @@ ${caps}
   ],
   // Every scenario starts from a cold launch (the login screen); the app
   // keeps its signed-in session in memory, so a restart is a clean slate.
-  beforeScenario: async () => {
+  beforeScenario: async (world) => {
     await driver.terminateApp('${appId}');
     await driver.activateApp('${appId}');
+    record({ event: 'scenario', scenario: world.pickle.name });
+  },
+  afterStep: async (step, scenario, result) => {
+    const error = result.error ? String(result.error).split('\\n')[0] : undefined;
+    record({ event: 'step', scenario: scenario.name, step: step.text, passed: result.passed, error });
+  },
+  afterScenario: async (world, result) => {
+    record({ event: 'scenarioEnd', scenario: world.pickle.name, passed: result.passed, status: world.result?.status });
   },
 };
 `;

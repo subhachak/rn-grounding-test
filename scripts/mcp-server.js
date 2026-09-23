@@ -2,6 +2,8 @@
 //   ground_selectors                       - "Selector Grounding" agent
 //   get_mapping_context, submit_proposals  - "Appium Test Generator" agent
 //   get_rule_matches, submit_review        - "Match Critic" agent
+//   story_overview, request_approvals,
+//   run_on_device, build_report            - "Story Runner" agent (with all of the above)
 //
 // Output is deliberately compact, tab-separated rows filtered by `view`,
 // instead of the full JSON registry: every token returned here is billed as
@@ -346,6 +348,143 @@ async function registerCriticTools() {
   );
 }
 
+// Whole-story runs for the "Story Runner" agent: the same deterministic
+// phases as `npm run story`. Human approvals are asked here, directly of the
+// person through a VS Code form (MCP elicitation); the agent never sees or
+// answers that form, so it cannot approve anything itself.
+async function registerRunTools() {
+  const orchestrator = await import('../generator/run/orchestrator.mts');
+  const { PLATFORMS } = await import('../generator/types.mts');
+  const { execFileSync } = require('child_process');
+
+  const text = (t) => ({ content: [{ type: 'text', text: t }] });
+  const fail = (e) => ({ content: [{ type: 'text', text: `Error: ${e.message}` }], isError: true });
+
+  // Commentary: streamed as progress while a tool runs, and returned in full.
+  const makeIO = (extra) => {
+    const said = [];
+    let n = 0;
+    const token = extra?._meta?.progressToken;
+    return {
+      said,
+      io: {
+        say(message) {
+          said.push(message);
+          if (token !== undefined) {
+            extra.sendNotification({ method: 'notifications/progress', params: { progressToken: token, progress: ++n, message } }).catch(() => {});
+          }
+        },
+        async approve(items) {
+          if (!server.server.getClientCapabilities()?.elicitation) {
+            said.push('This client cannot show an approval form; approve in a terminal with: npm run approve -- <story> --list');
+            return null;
+          }
+          let gitName = '';
+          try {
+            gitName = execFileSync('git', ['config', 'user.name'], { encoding: 'utf-8' }).trim();
+          } catch {
+            // no git identity
+          }
+          const properties = { approver: { type: 'string', title: 'Your name (recorded as the approver)', default: gitName } };
+          items.forEach((item, i) => {
+            properties[`item${i + 1}`] = {
+              type: 'boolean',
+              title: `[${item.platform}] ${item.kind}: ${item.title}`.slice(0, 200),
+              description: item.lines.join(' | ').slice(0, 1000),
+              default: false,
+            };
+          });
+          const result = await server.server.elicitInput({
+            message:
+              `${items.length} item(s) need your approval before tests use them. Tick what you approve; ` +
+              `anything left unticked stays pending. Evidence:\n\n` +
+              items.map((it, i) => `${i + 1}. [${it.platform}] ${it.kind}\n   ${it.lines.join('\n   ')}`).join('\n\n'),
+            requestedSchema: { type: 'object', properties, required: ['approver'] },
+          });
+          if (result.action !== 'accept' || !result.content?.approver) return null;
+          return { by: String(result.content.approver), approved: items.filter((_, i) => result.content[`item${i + 1}`] === true) };
+        },
+      },
+    };
+  };
+
+  server.registerTool(
+    'story_overview',
+    {
+      description:
+        'Start a run for a story: scan the app source, generate tests, and report per platform how steps were mapped, ' +
+        'what awaits approval, and what has no mapping yet.',
+      inputSchema: { story: z.string().describe('Story folder name, e.g. "STORY-101"') },
+    },
+    async ({ story }, extra) => {
+      try {
+        const { said, io } = makeIO(extra);
+        orchestrator.startRun(story);
+        orchestrator.phaseScan(story, io);
+        return text(said.join('\n'));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    'request_approvals',
+    {
+      description:
+        'Ask the person, through a form in VS Code, to approve what awaits human approval (agent/QA mappings, ' +
+        'critic-flagged rule matches, validated fallbacks). You do not answer this form; the person does.',
+      inputSchema: { story: z.string(), platform: z.enum(PLATFORMS).optional() },
+    },
+    async ({ story, platform }, extra) => {
+      try {
+        const { said, io } = makeIO(extra);
+        await orchestrator.phaseApprovals(story, io, platform ? [platform] : undefined);
+        return text(said.join('\n'));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    'run_on_device',
+    {
+      description:
+        'Run the story on a local device for one platform: boots the simulator/emulator, builds the app if needed, ' +
+        'validates new fallback locators first (asking the person to approve them), then runs the suite. Takes minutes.',
+      inputSchema: { story: z.string(), platform: z.enum(PLATFORMS), rebuild: z.boolean().optional() },
+    },
+    async ({ story, platform, rebuild }, extra) => {
+      try {
+        const { said, io } = makeIO(extra);
+        await orchestrator.phaseDevice(story, platform, io, { rebuild });
+        return text(said.join('\n'));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    'build_report',
+    {
+      description: 'Write the HTML report for the current run of a story and return its path.',
+      inputSchema: { story: z.string() },
+    },
+    async ({ story }, extra) => {
+      try {
+        const { said, io } = makeIO(extra);
+        orchestrator.phaseReport(story, io);
+        return text(said.join('\n'));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+}
+
 registerGenerationTools()
   .then(registerCriticTools)
+  .then(registerRunTools)
   .then(() => server.connect(new StdioServerTransport()));

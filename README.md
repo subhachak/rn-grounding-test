@@ -86,6 +86,32 @@ full JSON, and runs on the cheapest available model, to keep AI credit use
 low. The first time, VS Code asks you to trust/start the MCP server from
 `.vscode/mcp.json`.
 
+## Run a whole story with one command
+
+**In Copilot Chat:** `/run-story STORY-101` (agent **Story Runner**). It
+narrates each phase: overview, mapping any unmapped steps, critiquing rule
+matches, approvals, device runs, report. When something needs a person,
+VS Code shows you an approval form with the evidence; the agent never sees
+or answers that form. Restart the `selector-grounding` MCP server after
+pulling changes.
+
+**In a terminal:** the same phases, prompting you in the terminal:
+
+```bash
+npm run story -- STORY-101                     # both platforms
+npm run story -- STORY-101 --platform ios      # one platform
+npm run story -- STORY-101 --no-devices        # generate, approve, report only
+```
+
+It boots the simulator/emulator itself (one at a time, for memory), builds
+the app if its binary is missing (`--rebuild` to force), validates new
+fallback locators first and asks you to approve them, runs the suite with a
+line per step, and writes `reports/<story>/latest.html`: device results per
+scenario and step, how every step was mapped and decided, gaps with the
+proposed testID patch, fallbacks with their device evidence, critic flags,
+every human approval (who, when, fingerprint), and the run log. Without a
+terminal (e.g. CI) it approves nothing; those steps stay pending.
+
 ## Generating Appium tests from feature files
 
 Each story has one feature file per platform under `features/<story>/`
