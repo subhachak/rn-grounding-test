@@ -1,24 +1,48 @@
-// Stub sign-in for the harness: who logged in decides entitlement, which is
-// what the persona-gated screens (PlanDetails) render on. Usernames match the
-// personas in test-data/testdata.json; there is no real auth behind this.
+// Stub sign-in: who logged in decides the member shown and whether they are
+// entitled (Premier) or restricted (Basic). Usernames match the personas in
+// test-data/testdata.json; there is no real authentication.
 import React, { createContext, useContext, useState } from 'react';
+import { MEMBERS, type Member } from './data/mock';
 
-const RESTRICTED_USERS = new Set(['member.restricted']);
+export type Frequency = 'One-time' | 'Monthly' | 'Quarterly';
+
+export interface ContributionDraft {
+  planId: string;
+  amount: string;
+  frequency: Frequency;
+  startDate: Date;
+}
 
 interface Session {
-  username: string | null;
+  member: Member | null;
   isEntitled: boolean;
-  signIn: (username: string) => void;
+  signIn: (username: string) => boolean;
+  signOut: () => void;
+  draft: ContributionDraft;
+  updateDraft: (change: Partial<ContributionDraft>) => void;
 }
 
 const SessionContext = createContext<Session | null>(null);
 
+const newDraft = (): ContributionDraft => ({ planId: 'p1', amount: '', frequency: 'Monthly', startDate: new Date() });
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [username, setUsername] = useState<string | null>(null);
+  const [member, setMember] = useState<Member | null>(null);
+  const [draft, setDraft] = useState<ContributionDraft>(newDraft);
   const value: Session = {
-    username,
-    isEntitled: username !== null && !RESTRICTED_USERS.has(username),
-    signIn: setUsername,
+    member,
+    isEntitled: member?.isEntitled ?? false,
+    signIn: (username) => {
+      const found = MEMBERS[username.trim().toLowerCase()];
+      setMember(found ?? null);
+      return Boolean(found);
+    },
+    signOut: () => {
+      setMember(null);
+      setDraft(newDraft());
+    },
+    draft,
+    updateDraft: (change) => setDraft((d) => ({ ...d, ...change })),
   };
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
