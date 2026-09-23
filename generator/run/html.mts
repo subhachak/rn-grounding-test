@@ -7,7 +7,7 @@ import path from 'node:path';
 import type { Approval } from '../approvals.mts';
 import { ROOT, storyOutput } from '../paths.mts';
 import type { decideStory } from '../pipeline.mts';
-import { summarize } from '../report.mts';
+import { stepAction, stepDecision, stepEvidence, summarize } from '../report.mts';
 import { evidence } from '../registry.mts';
 import type { Platform, PlatformResult } from '../types.mts';
 import type { StepResult, SuiteResult } from './devices.mts';
@@ -96,27 +96,8 @@ export function renderHtmlReport(story: string, decided: Decided, run: RunState)
       const rows = r.steps
         .map((d) => {
           const p = d.proposal;
-          const held = p.approval && p.approval !== 'approved';
-          const state = held
-            ? badge(`${p.approval} approval`, 'warn')
-            : d.verdict === 'accepted'
-              ? badge('accepted', 'ok')
-              : d.verdict === 'rejected'
-                ? badge('rejected', 'bad')
-                : d.fallback?.state === 'validated'
-                  ? badge('fallback', 'ok')
-                  : badge('gap', 'warn');
-          const why =
-            d.verdict === 'rejected'
-              ? d.errors.map((e) => `${e.rule} ${e.message}`).join('; ')
-              : d.locator
-                ? `${d.locator.attribute}=${d.locator.id} (${d.locator.evidence})`
-                : d.fallback
-                  ? `no testID at ${d.fallback.key}; fallback ${d.fallback.state}${d.fallback.device ? ` on ${d.fallback.device}` : ''}`
-                  : p.gap
-                    ? `gap at ${p.gap}`
-                    : p.rationale;
-          return `<tr><td>${esc(d.step)}</td><td>${state}${p.flag ? `<div class="flag">critic: ${esc(p.flag)}</div>` : ''}</td><td>${esc({ rules: 'rules', agent: 'Copilot agent', human: 'QA', none: '-' }[p.source])}</td><td>${esc(p.action)}</td><td class="mono">${esc(why)}</td></tr>`;
+          const decision = stepDecision(d);
+          return `<tr><td>${esc(d.step)}</td><td>${badge(decision.label, decision.tone)}${p.flag ? `<div class="flag">critic: ${esc(p.flag)}</div>` : ''}</td><td>${esc({ rules: 'rules', agent: 'Copilot agent', human: 'QA', none: '-' }[p.source])}</td><td>${esc(stepAction(d))}</td><td class="mono">${esc(stepEvidence(d))}</td></tr>`;
         })
         .join('\n');
       return `<h3>${esc(r.platform)}</h3><div class="scroll"><table><thead><tr><th>Step</th><th>Decision</th><th>Mapped by</th><th>Action</th><th>Evidence</th></tr></thead><tbody>${rows}</tbody></table></div>`;

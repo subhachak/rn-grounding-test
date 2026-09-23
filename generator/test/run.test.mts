@@ -100,3 +100,14 @@ test('same-named scenarios (a Scenario Outline without placeholders in its title
   assert.match(blocks[1], /boom/);
   assert.equal((blocks[1].match(/badge muted">skipped/g) ?? []).length, twin.steps.length - 1);
 });
+
+test('a gap step reads as its intended action and fallback status, not "unmapped"', async () => {
+  const { stepAction, stepDecision, stepEvidence } = await import('../report.mts');
+  const decided = decideStory(storyDir('STORY-101'));
+  const cancel = decided.results.find((r) => r.platform === 'android')!.steps.find((d) => d.step === 'I tap Cancel')!;
+  assert.equal(stepAction(cancel), 'tap');
+  assert.equal(stepDecision(cancel).label, 'fallback: not yet validated');
+  assert.match(stepEvidence(cancel), /No testID at src\/screens\/ContributionFormScreen\.tsx:17 \(proposed contribution-cancel-button\)\. Fallback by visible text "Cancel": not yet validated/);
+  const typed = decided.results.find((r) => r.platform === 'android')!.steps.find((d) => d.step.startsWith('I enter username'))!;
+  assert.equal(stepAction(typed), 'type "member.entitled"');
+});
