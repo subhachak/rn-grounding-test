@@ -314,7 +314,7 @@ async function registerCriticTools() {
         const { registry, matches } = ruleMatches(story, platform);
         const rows = matches.map((d, i) => {
           const p = d.proposal;
-          const f = p.locator ? registry.find((x) => x.value === p.locator) : p.gap ? registry.find((x) => `${x.file}:${x.line}` === p.gap) : null;
+          const f = p.locator ? registry.find((x) => x.value === p.locator) : p.gap ? registry.find((x) => `${x.file}:${x.line}${x.option ? ` [${x.option}]` : ''}` === p.gap) : null;
           const target = f
             ? `${f.element}${f.description ? ` "${f.description}"` : ''} on ${f.screen}${f.conditions.length ? ` (shown only when ${f.conditions.join(' && ')})` : ''}`
             : 'platform back navigation';

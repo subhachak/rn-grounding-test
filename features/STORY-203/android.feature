@@ -67,6 +67,6 @@ Feature: Making a contribution
     And I tap Log In
     Then the home screen is displayed
     When I tap Contribute
-    And I enter amount "150"
+    And I select amount "250"
     And I tap Quarterly
     Then the contribute summary is displayed

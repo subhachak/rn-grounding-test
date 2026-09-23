@@ -124,6 +124,13 @@ export function decideStep(p: Proposal, registry: RegistryFinding[], testData: T
     } else {
       try {
         id = resolveTemplate(found.value as string, recordScope([found.value as string], record));
+        // Rendered from a constant list: the record must name one of its items.
+        if (found.options && !found.options.includes(id)) {
+          errors.push({
+            rule: 'G4',
+            message: `record ${p.record} gives \`${id}\`, which ${found.optionList} never renders (it renders ${found.options.join(', ')})`,
+          });
+        }
       } catch (e) {
         if (!(e instanceof Unverifiable)) throw e;
         errors.push({ rule: 'G4', message: `cannot resolve template: ${e.message}` });

@@ -211,11 +211,17 @@ function unwrap(node) {
   return node;
 }
 
-// A string, or an object of strings (nested), written as literals.
+// A string, number, or boolean, or an object or array of them (nested),
+// written as literals.
 function literalValue(node) {
   node = unwrap(node);
   if (!node) return undefined;
   if (node.type === 'StringLiteral') return node.value;
+  if (node.type === 'NumericLiteral' || node.type === 'BooleanLiteral') return node.value;
+  if (node.type === 'ArrayExpression') {
+    const out = node.elements.map((e) => (e ? literalValue(e) : undefined));
+    return out.every((v) => v !== undefined) ? out : undefined;
+  }
   if (node.type === 'TemplateLiteral' && node.expressions.length === 0) return node.quasis[0].value.cooked;
   if (node.type === 'ObjectExpression') {
     const out = {};
@@ -480,6 +486,102 @@ function screenOfRoute(route) {
   return component || null;
 }
 
+// ---------------------------------------------------------------------------
+// Constant lists: an element rendered by `LIST.map((item) => ...)` over a
+// literal array exists once per item, with values the source states. Recorded
+// so a templated testID lists the values it really takes, and an unlabelled
+// element (label from a variable) becomes one gap per option, each with its
+// real label.
+
+// The `.map` an element is rendered by, if its nearest enclosing function is
+// that map's callback: the list expression and the item parameter.
+function mapContext(elementPath, mod) {
+  let fn = elementPath.parentPath;
+  while (fn && !fn.isFunction()) fn = fn.parentPath;
+  if (!fn) return null;
+  const call = fn.parentPath && fn.parentPath.node;
+  if (!call || call.type !== 'CallExpression' || call.arguments[0] !== fn.node) return null;
+  const callee = call.callee;
+  if (callee.type !== 'MemberExpression' || callee.computed || callee.property.name !== 'map') return null;
+  const param = fn.node.params[0];
+  if (!param || param.type !== 'Identifier') return null;
+  return { param: param.name, object: callee.object, source: mod.code.slice(callee.object.start, callee.object.end) };
+}
+
+// The constant list an element is rendered from: a .map over a literal array.
+function listContext(elementPath, mod, modules) {
+  const map = mapContext(elementPath, mod);
+  const items = map && resolveConstant(map.object, mod, modules);
+  if (!Array.isArray(items) || !items.length) return null;
+  return { param: map.param, items, source: map.source };
+}
+
+// For an element in any list (runtime data too): its React `key`, as the
+// template part a proposed testID uses so each item's testID is unique.
+function itemKey(elementNode, elementPath, mod) {
+  const map = mapContext(elementPath, mod);
+  const key = map && elementNode.openingElement.attributes.find((a) => a.type === 'JSXAttribute' && a.name.name === 'key');
+  if (!key || !key.value || key.value.type !== 'JSXExpressionContainer') return null;
+  const expr = unwrap(key.value.expression);
+  const text = mod.code.slice(expr.start, expr.end);
+  // only a plain item expression (a.id, f): an index or call is not an identity
+  if (!/^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(text) || text.split('.')[0] !== map.param) return null;
+  return { itemKey: `\${${text}}`, optionList: map.source };
+}
+
+// An expression over the list item (f, f.label, q.id) for one item.
+function itemValue(expr, list, item) {
+  expr = unwrap(expr);
+  if (expr.type === 'Identifier') return expr.name === list.param ? item : undefined;
+  if (expr.type === 'MemberExpression' && !expr.computed && expr.property.type === 'Identifier') {
+    const obj = itemValue(expr.object, list, item);
+    return obj !== null && typeof obj === 'object' ? obj[expr.property.name] : undefined;
+  }
+  return undefined;
+}
+const scalar = (v) => (typeof v === 'string' || typeof v === 'number' ? String(v) : undefined);
+
+// The values a templated testID takes over the list, if every placeholder is
+// an expression over the item.
+function templateOptions(tpl, list) {
+  const values = list.items.map((item) =>
+    tpl.quasis
+      .map((q, i) => (i < tpl.expressions.length ? [q.value.cooked, scalar(itemValue(tpl.expressions[i], list, item))] : [q.value.cooked, '']))
+      .reduce((acc, [text, v]) => (acc === undefined || v === undefined ? undefined : acc + text + v), ''),
+  );
+  return values.every((v) => v !== undefined) ? values : null;
+}
+
+// Each item's label for an element whose label is a variable: its title,
+// label, or placeholder prop, else its first {expression} child.
+function optionLabels(elementNode, list) {
+  let expr = null;
+  for (const attr of elementNode.openingElement.attributes) {
+    if (attr.type === 'JSXAttribute' && ['title', 'label', 'placeholder'].includes(attr.name.name) && attr.value && attr.value.type === 'JSXExpressionContainer') {
+      expr = attr.value.expression;
+      break;
+    }
+  }
+  const stack = [...elementNode.children];
+  while (!expr && stack.length) {
+    const node = stack.shift();
+    if (node.type === 'JSXExpressionContainer' && node.expression.type !== 'JSXEmptyExpression') expr = node.expression;
+    if (node.type === 'JSXElement') stack.unshift(...node.children);
+  }
+  if (!expr) return null;
+  const labels = list.items.map((item) => scalar(itemValue(expr, list, item)));
+  return labels.every((l) => l && l.trim()) ? labels : null;
+}
+
+// The part of each item a proposed testID should use: an id-like field of
+// object items, or the item itself.
+function optionKey(list) {
+  const field = ['id', 'key', 'value', 'slug', 'code'].find((k) => list.items.every((i) => i && typeof i === 'object' && scalar(i[k])));
+  if (field) return { template: `\${${list.param}.${field}}`, values: list.items.map((i) => String(i[field])) };
+  if (list.items.every((i) => scalar(i))) return { template: `\${${list.param}}`, values: list.items.map(String) };
+  return null;
+}
+
 function extractFromModule(mod, modules, wrappers) {
   const { code, ast } = mod;
 
@@ -518,6 +620,7 @@ function extractFromModule(mod, modules, wrappers) {
         let value = null;
         let category = null;
         let resolvedFrom = null;
+        let options = {};
         if (attr.value && attr.value.type === 'StringLiteral') {
           value = attr.value.value;
           category = 'stable';
@@ -553,6 +656,9 @@ function extractFromModule(mod, modules, wrappers) {
             if (dynamic) {
               value = '{`' + text + '`}';
               category = 'templated-dynamic';
+              const list = listContext(elementPath, mod, modules);
+              const values = list && templateOptions(tpl, list);
+              if (values) options = { options: values, optionList: list.source };
               if (text !== code.slice(tpl.start + 1, tpl.end - 1)) resolvedFrom = code.slice(expr.start, expr.end);
             } else {
               value = text;
@@ -581,6 +687,7 @@ function extractFromModule(mod, modules, wrappers) {
           ...vendor,
           ...via,
           ...(resolvedFrom && { resolvedFrom }),
+          ...options,
           ...nav,
           file: mod.file,
           line: attr.loc.start.line,
@@ -589,7 +696,7 @@ function extractFromModule(mod, modules, wrappers) {
 
       const isInteractive = INTERACTIVE_ELEMENTS.has(elementName) || hasInteractionProp;
       if (isInteractive && !hasLocator) {
-        results.push({
+        const gap = {
           screen: screenName,
           element: elementName,
           attribute: null,
@@ -604,7 +711,22 @@ function extractFromModule(mod, modules, wrappers) {
           ...nav,
           file: mod.file,
           line: opening.loc.start.line,
-        });
+        };
+        // Rendered once per item of a constant list, with a label from the
+        // item: one gap per option, each with its real label, so a step can
+        // name the option and a fallback can find it by that text.
+        const list = !gap.description && listContext(elementPath, mod, modules);
+        const labels = list && optionLabels(elementPath.node, list);
+        const key = labels && optionKey(list);
+        if (labels && key) {
+          labels.forEach((label, i) =>
+            results.push({ ...gap, description: label, option: label, optionList: list.source, optionKey: key.template, optionValue: key.values[i] }),
+          );
+        } else {
+          // In a list of runtime data: one gap for every item, whose testID
+          // must include the item's key to be unique.
+          results.push({ ...gap, ...(itemKey(elementPath.node, elementPath, mod) || {}) });
+        }
       }
     },
   });

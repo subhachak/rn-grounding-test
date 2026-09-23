@@ -11,7 +11,7 @@ import { fallbackStatus, loadValidations } from './fallbacks.mts';
 import { BASE_PAGE, buildPageModel, renderPage } from './pageobjects.mts';
 import { proposeTestIds, renderPatch, renderRemediation } from './remediation.mts';
 import { renderMarkdown, summarize } from './report.mts';
-import { loadRegistry, loadTestData, registrySnapshot } from './registry.mts';
+import { evidence, loadRegistry, loadTestData, registrySnapshot } from './registry.mts';
 import { PLATFORMS, type MappingInput, type Platform, type PlatformResult, type Proposal } from './types.mts';
 
 import { loadConfig } from './config.mts';
@@ -138,7 +138,7 @@ export function decideStory(dir: string, opts: GenerateOptions = {}) {
     const proposals = propose({ platform, steps: uniqueSteps(feature), scenarios: scenarioSteps(feature), registry, testData }, agent, reviews);
     const steps = proposals.map((p) => {
       const d = decideStep(p, registry, testData);
-      const member = d.gap && model.byGap.get(`${d.gap.file}:${d.gap.line}`);
+      const member = d.gap && model.byGap.get(evidence(d.gap));
       if (!d.gap || !member?.fallback) return d;
       const st = fallbackStatus(d.gap, platform, validations);
       if (st.state === 'none') return d;

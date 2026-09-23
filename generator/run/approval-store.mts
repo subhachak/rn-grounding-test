@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fallbackFingerprint, mappingApproval, mappingFingerprint } from '../approvals.mts';
 import { storyOutput } from '../paths.mts';
+import { evidence } from '../registry.mts';
 import { decideStory, proposalsFile, reviewFile } from '../pipeline.mts';
 import { PLATFORMS, type Platform, type StepDecision } from '../types.mts';
 
@@ -25,7 +26,7 @@ export function listPending(dir: string, platforms: Platform[] = PLATFORMS): Pen
     const target = p.locator
       ? registry.find((f) => f.value === p.locator)
       : p.gap
-        ? registry.find((f) => `${f.file}:${f.line}` === p.gap)
+        ? registry.find((f) => evidence(f) === p.gap)
         : undefined;
     return {
       kind: 'mapping',

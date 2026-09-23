@@ -45,6 +45,18 @@ export interface RegistryFinding {
   component?: string; // local wrapper used (e.g. PrimaryButton); element is what it renders
   resolvedFrom?: string; // source expression a constant testID was resolved from
   navigatesTo?: string; // screen component a tap certainly navigates to
+  // Rendered by .map over a constant list (optionList, e.g. FILTERS): a
+  // templated testID lists the values it takes (options); an unlabelled gap
+  // is one finding per item, with that item's label (option), and the key
+  // expression and value a proposed testID uses (optionKey `${f.key}`, optionValue).
+  optionList?: string;
+  options?: string[];
+  option?: string;
+  optionKey?: string;
+  optionValue?: string;
+  // An element in a list of runtime data: its React key as a template part
+  // (`${a.id}`), so a proposed testID is unique per item.
+  itemKey?: string;
   file: string;
   line: number;
 }

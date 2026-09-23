@@ -136,3 +136,38 @@ test('a tap records the screen its handler certainly navigates to, through the n
   assert.equal(to('rx-transfer-back'), undefined, 'back: the previous screen is not known statically');
   assert.equal(to('rx-home-transfer'), undefined, 'a handler with no navigation');
 });
+
+test('elements rendered from a constant list carry its real values and labels', () => {
+  useConfig(path.join(REAL_APP, 'grounding.config.json'));
+  const registry = loadRegistry().filter((f) => f.screen === 'StatementsScreen');
+  // a templated testID lists the values it takes
+  const tab = registry.find((f) => f.value === '{`rx-statements-tab-${t.id}`}');
+  assert.deepEqual(tab?.options, ['rx-statements-tab-all', 'rx-statements-tab-mine']);
+  assert.equal(tab?.optionList, 'TABS');
+  // an unlabelled element is one gap per option, with its real label
+  const sorts = registry.filter((f) => f.optionList === 'SORT_ORDERS');
+  assert.deepEqual(sorts.map((f) => [f.category, f.description, f.optionKey]), [
+    ['missing', 'Newest', '${s}'],
+    ['missing', 'Oldest', '${s}'],
+  ]);
+  // a list that is not constant (props, API data) stays one gap with no label
+  const accounts = registry.filter((f) => f.category === 'missing' && f.optionList === 'accounts');
+  assert.deepEqual(accounts.map((f) => [f.description, f.option, f.itemKey]), [[null, undefined, '${a.id}']]);
+});
+
+test('a list gap gets one templated testID in the patch, and each option its own fallback', () => {
+  useConfig(path.join(REAL_APP, 'grounding.config.json'));
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'opts-')), 'STORY-9');
+  generateStory(storyDir('STORY-9'), { outDir: out });
+  const patch = fs.readFileSync(path.join(out, 'remediation/testids.patch'), 'utf-8');
+  const added = patch.split('\n').filter((l) => l.startsWith('+') && l.includes('key={s}'));
+  assert.equal(added.length, 1, 'one change for the whole list');
+  // the screen's own prefix, the list's name, the item, the kind
+  assert.match(added[0], /testID=\{`rx-statements-sort-order-\$\{s\}-button`\}/);
+  // a list of runtime data: templated by the item's React key, so each item's testID is unique
+  assert.match(patch, /\+.*testID=\{`rx-statements-account-\$\{a\.id\}-button`\} key=\{a\.id\}/);
+  const page = fs.readFileSync(path.join(out, 'pageobjects/statements.page.ts'), 'utf-8');
+  assert.match(page, /StatementsScreen\.tsx:\d+ \[Newest\]/);
+  assert.match(page, /StatementsScreen\.tsx:\d+ \[Oldest\]/);
+  assert.match(page, /label == \\"Oldest\\"/);
+});

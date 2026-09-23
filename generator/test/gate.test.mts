@@ -193,3 +193,13 @@ test('G5 warns about conditions on runtime state, and still fails unknown person
   assert.match(entitled.warnings[0].message, /runtime state \(error\)/);
   assert.deepEqual(run('restricted').errors.map((e) => e.rule), ['G5']);
 });
+
+test('G4: a record must name an item the constant list renders', () => {
+  const reg: RegistryFinding[] = [
+    finding({ value: '{`tab-${t.id}`}', category: 'templated-dynamic', options: ['tab-all', 'tab-mine'], optionList: 'TABS', line: 60 }),
+  ];
+  const data = { ...testData, records: { tabs: { all: { id: 'all' }, archived: { id: 'archived' } } } };
+  const check = (record: string) => decideStep(propose({ step: 's', action: 'tap', locator: '{`tab-${t.id}`}', record }), reg, data).errors;
+  assert.deepEqual(check('tabs.all'), []);
+  assert.match(check('tabs.archived')[0]?.message ?? '', /tab-archived`, which TABS never renders \(it renders tab-all, tab-mine\)/);
+});

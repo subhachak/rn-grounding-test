@@ -1,6 +1,7 @@
 // What the Copilot agent sees for the steps the rule matcher could not map:
 // registry locators, gaps, test data, and those steps with the reason each
 // was left unmatched.
+import { evidence } from '../registry.mts';
 import type { MappingInput } from '../types.mts';
 
 export const MAPPING_RULES = `For each step, propose:
@@ -22,7 +23,7 @@ export function renderContext(input: MappingInput, reasons: Record<string, strin
     );
   const gaps = input.registry
     .filter((f) => f.category === 'missing')
-    .map((f) => [`${f.file}:${f.line}`, f.screen, f.element, f.description ?? '-'].join('\t'));
+    .map((f) => [evidence(f), f.screen, f.element, f.description ?? '-'].join('\t'));
   const records = Object.entries(input.testData.records).flatMap(([collection, rows]) =>
     Object.entries(rows).map(([key, row]) => `${collection}.${key}\t${JSON.stringify(row)}`),
   );

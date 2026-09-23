@@ -31,6 +31,8 @@ export function loadTestData(file: string): TestData {
   return JSON.parse(fs.readFileSync(file, 'utf-8')) as TestData;
 }
 
+// Where a finding is: file:line, plus the option for one of a list's gaps
+// (they share a line), e.g. src/screens/ContributeScreen.tsx:84 [Quarterly].
 export function evidence(f: RegistryFinding): string {
-  return `${f.file}:${f.line}`;
+  return `${f.file}:${f.line}${f.option ? ` [${f.option}]` : ''}`;
 }

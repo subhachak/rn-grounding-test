@@ -11,7 +11,18 @@ import type { RegistryFinding } from './types.mts';
 export interface TestIdProposal {
   gap: RegistryFinding;
   testID: string;
+  // For one option of a list's gap: the templated testID the patch adds
+  // once for the whole list (`contribute-frequency-${f}-button`); testID is
+  // its value for this option.
+  template?: string;
 }
+
+// FREQUENCIES -> frequency, QUICK_AMOUNTS -> quick amount, PLAN_TYPES -> plan type
+const singular = (name: string) => {
+  const w = words(name.split('.').pop()!.replace(/([a-z])([A-Z])/g, '$1 $2'));
+  const last = w.pop() ?? '';
+  return [...w, last.replace(/ies$/, 'y').replace(/(ss)$/, '$1').replace(/([^s])s$/, '$1')];
+};
 
 const words = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 const KIND: Record<string, string> = { TextInput: 'input', Switch: 'switch' };
@@ -34,9 +45,23 @@ export function proposeTestIds(registry: RegistryFinding[]): TestIdProposal[] {
   return registry
     .filter((f) => f.category === 'missing')
     .map((gap) => {
+      const kind = KIND[gap.element] ?? 'button';
+      if (gap.option && gap.optionList && gap.optionKey) {
+        // One templated testID for the list, named after it.
+        const template = [...screenPrefix(gap.screen, registry), ...singular(gap.optionList), gap.optionKey, kind].join('-');
+        const testID = template.replace(gap.optionKey, gap.optionValue ?? gap.option);
+        taken.add(testID);
+        return { gap, testID, template };
+      }
+      if (gap.itemKey && gap.optionList) {
+        // In a list of runtime data: templated by the item's key, or every
+        // item would get the same testID.
+        const label = words((gap.description ?? '').split('(')[0]).slice(0, 3);
+        const template = [...screenPrefix(gap.screen, registry), ...(label.length ? label : singular(gap.optionList)), gap.itemKey, kind].join('-');
+        return { gap, testID: template, template };
+      }
       // Visible text names the element; a parenthetical is detail, not name.
       const label = words((gap.description ?? '').split('(')[0]).slice(0, 3);
-      const kind = KIND[gap.element] ?? 'button';
       const base = [...screenPrefix(gap.screen, registry), ...(label.length ? label : ['element']), kind].join('-');
       let testID = base;
       for (let n = 2; taken.has(testID); n++) testID = `${base}-${n}`;
@@ -53,7 +78,7 @@ const jsxName = (n: any): string => (n.type === 'JSXMemberExpression' ? `${jsxNa
 // A gap on a wrapper (<Button title="Cancel">) is recorded as the native
 // element it renders, but the testID goes on the wrapper as written, which
 // forwards it.
-function patchLine(source: string, gap: RegistryFinding, testID: string): { line: number; before: string; after: string } {
+function patchLine(source: string, gap: RegistryFinding, attribute: string): { line: number; before: string; after: string } {
   const ast = babelParser.parse(source, { sourceType: 'module', plugins: ['jsx', 'typescript'] });
   const tag = gap.component ?? gap.element;
   let insertAt: number | null = null;
@@ -72,7 +97,7 @@ function patchLine(source: string, gap: RegistryFinding, testID: string): { line
   };
   visit(ast.program);
   if (insertAt === null) throw new Error(`no <${tag}> opening tag at ${evidence(gap)}`);
-  const patched = source.slice(0, insertAt) + ` testID="${testID}"` + source.slice(insertAt);
+  const patched = source.slice(0, insertAt) + attribute + source.slice(insertAt);
   const idx = gap.line - 1;
   return { line: gap.line, before: source.split('\n')[idx], after: patched.split('\n')[idx] };
 }
@@ -87,7 +112,9 @@ export function renderPatch(repoRoot: string, proposals: TestIdProposal[]): stri
   for (const [file, items] of [...byFile].sort(([a], [b]) => a.localeCompare(b))) {
     const source = fs.readFileSync(path.join(repoRoot, file), 'utf-8');
     const lines = source.split('\n');
-    const changes = new Map(items.map((p) => { const c = patchLine(source, p.gap, p.testID); return [c.line, c.after]; }));
+    // A list's options share one element (and line): one templated testID.
+    const attribute = (p: TestIdProposal) => (p.template ? ` testID={\`${p.template}\`}` : ` testID="${p.testID}"`);
+    const changes = new Map(items.map((p) => { const c = patchLine(source, p.gap, attribute(p)); return [c.line, c.after]; }));
     out.push(`diff --git a/${file} b/${file}`, `--- a/${file}`, `+++ b/${file}`);
     const changed = [...changes.keys()].sort((a, b) => a - b);
     // Merge changes whose context windows touch into one hunk.
@@ -125,7 +152,8 @@ export function renderRemediation(proposals: TestIdProposal[]): string {
     '|---|---|---|---|',
   ];
   for (const p of proposals) {
-    out.push(`| ${p.gap.element} | ${p.gap.description ?? '-'} | \`${evidence(p.gap)}\` | \`${p.testID}\` |`);
+    const id = p.template ? `${p.testID}\` (from \`${p.template}\`, one testID for all of ${p.gap.optionList})` : `${p.testID}\``;
+    out.push(`| ${p.gap.element} | ${p.gap.description ?? '-'} | \`${evidence(p.gap)}\` | \`${id} |`);
   }
   return out.join('\n') + '\n';
 }

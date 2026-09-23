@@ -75,7 +75,7 @@ follows them (Copilot, a fallback, a person):
 |---|---|---|
 | STORY-201 Signing in and out | both personas, profile badges, sign out; an error that depends on runtime state (a G5 warning, not a failure) | none |
 | STORY-202 Plans by membership | per-plan badges from test-data records; persona-gated plan details; an Android-only back step; `I open plan "p1"` is in three lists, and the screen context picks the one on Plans | none |
-| STORY-203 Making a contribution | quick amounts from records, a Scenario Outline, a runtime-state error | `I tap Cancel`: no testID, device-validated fallback; `I tap Quarterly`: no testID and no text, Copilot/QA |
+| STORY-203 Making a contribution | quick amounts from records, a Scenario Outline, a runtime-state error | `I tap Cancel` and `I tap Quarterly`: no testID, device-validated fallbacks (Quarterly's label comes from the constant FREQUENCIES list) |
 | STORY-204 Scheduling the first contribution | platform-gated UI: iOS date wheels through the vendor adapter, the Android date button | none |
 | STORY-205 Premier upsell for Basic members | a locked feature and the upgrade modal | none |
 | STORY-206 Activity and statements | list filters and rows from records | `I open document "d1"`: accessibilityLabel only, Copilot |
@@ -93,6 +93,15 @@ follows them (Copilot, a fallback, a person):
   the wrapper's own `testID={testID}` pass-through is not reported.
 - **Screens are components**: several components in one file are separate
   screens.
+- **Constant lists**: an element rendered by `LIST.map(...)` over a literal
+  array records what the source says it renders. A templated testID lists
+  its real values (`options`), so the gate rejects a test-data record the
+  list never renders. An element with no testID whose label is the item
+  (`{f}`, `title={f.label}`) becomes one gap per option with its real label,
+  so `I tap Quarterly` can name it and a fallback can find it; the patch
+  proposes one templated testID for the list. A gap in a list of runtime
+  data gets a testID templated by the item's React `key`, so each item's
+  testID is unique.
 - **Navigation**: a tappable element records the screen its handler
   certainly navigates to (`navigatesTo`), from `navigation.navigate/push/
   replace/reset` calls and the navigator's routes, including navigators
