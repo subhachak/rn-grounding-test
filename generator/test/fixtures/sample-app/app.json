@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "rn-grounding-test",
+    "slug": "rn-grounding-test",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.test.rngroundingtest"
+    },
+    "android": {
+      "package": "com.test.rngroundingtest"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
+      "@react-native-community/datetimepicker"
+    ]
+  }
+}

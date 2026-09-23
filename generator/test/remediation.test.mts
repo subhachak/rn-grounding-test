@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
+import './helpers.mts';
+import { appRoot, featuresDir } from '../paths.mts';
 import { fallbackSelectors, fallbackStatus } from '../fallbacks.mts';
 import { decideStep } from '../gate.mts';
 import { buildPageModel } from '../pageobjects.mts';
@@ -15,10 +17,10 @@ import type { Proposal, RegistryFinding } from '../types.mts';
 // Apply the generated patch to a copy of the app and re-scan it.
 function patchedCopy() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'remed-'));
-  fs.cpSync(path.join(ROOT, 'src'), path.join(dir, 'src'), { recursive: true });
-  const registry = loadRegistry(ROOT);
+  fs.cpSync(path.join(appRoot(), 'src'), path.join(dir, 'src'), { recursive: true });
+  const registry = loadRegistry(appRoot());
   const proposals = proposeTestIds(registry);
-  fs.writeFileSync(path.join(dir, 'testids.patch'), renderPatch(ROOT, proposals));
+  fs.writeFileSync(path.join(dir, 'testids.patch'), renderPatch(appRoot(), proposals));
   const git = spawnSync('git', ['apply', 'testids.patch'], { cwd: dir, encoding: 'utf-8' });
   assert.equal(git.status, 0, git.stderr);
   return { registry, proposals, after: loadRegistry(dir) };

@@ -1,0 +1,18 @@
+{
+  "personas": {
+    "entitled": {
+      "username": "member.entitled",
+      "props": { "isEntitled": true }
+    },
+    "restricted": {
+      "username": "member.restricted",
+      "props": { "isEntitled": false }
+    }
+  },
+  "records": {
+    "plans": {
+      "p1": { "id": "p1", "entitled": true },
+      "p2": { "id": "p2", "entitled": false }
+    }
+  }
+}

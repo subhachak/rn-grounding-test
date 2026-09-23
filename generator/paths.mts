@@ -8,7 +8,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const FEATURES_DIR = path.join(ROOT, 'features');
+
+// The app the generator reads: its src/, features/, test-data/, and app.json.
+// This repo's own app by default; GROUNDING_APP_ROOT points elsewhere (the
+// generator's tests use a frozen fixture app, so redesigning the demo app
+// never breaks them). Read on every call, like the output root.
+export const appRoot = () => (process.env.GROUNDING_APP_ROOT ? path.resolve(process.env.GROUNDING_APP_ROOT) : ROOT);
+export const featuresDir = () => path.join(appRoot(), 'features');
+export const defaultTestData = () => path.join(appRoot(), 'test-data', 'testdata.json');
 
 export const outputRoot = () => (process.env.GROUNDING_OUTPUT ? path.resolve(process.env.GROUNDING_OUTPUT) : path.join(ROOT, 'output'));
 

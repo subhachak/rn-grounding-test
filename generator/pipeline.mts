@@ -14,10 +14,9 @@ import { renderMarkdown, summarize } from './report.mts';
 import { loadRegistry, loadTestData, registrySnapshot } from './registry.mts';
 import { PLATFORMS, type MappingInput, type Platform, type PlatformResult, type Proposal } from './types.mts';
 
-import { FEATURES_DIR, ROOT, storyOutput } from './paths.mts';
+import { ROOT, appRoot, defaultTestData, featuresDir, storyOutput } from './paths.mts';
 
-export { FEATURES_DIR, ROOT };
-export const DEFAULT_TEST_DATA = path.join(ROOT, 'test-data', 'testdata.json');
+export { ROOT };
 
 // Keyed by the story folder (features/<story>) for callers that have it.
 export const proposalsFile = (storyDir: string) => storyOutput(path.basename(storyDir)).proposals;
@@ -43,14 +42,14 @@ export function readAgentProposals(storyDir: string): AgentProposals {
 // features/ (e.g. "../../somewhere").
 export function storyDir(story: string): string {
   if (!/^[A-Za-z0-9_-]+$/.test(story)) throw new Error(`invalid story id \`${story}\``);
-  const dir = path.join(FEATURES_DIR, story);
+  const dir = path.join(featuresDir(), story);
   if (!fs.existsSync(dir)) throw new Error(`no story folder features/${story}`);
   return dir;
 }
 
-export function mappingInput(dir: string, platform: Platform, testDataFile = DEFAULT_TEST_DATA): MappingInput {
+export function mappingInput(dir: string, platform: Platform, testDataFile = defaultTestData()): MappingInput {
   const features = loadStory(dir);
-  return { platform, steps: uniqueSteps(features[platform]), registry: loadRegistry(ROOT), testData: loadTestData(testDataFile) };
+  return { platform, steps: uniqueSteps(features[platform]), registry: loadRegistry(appRoot()), testData: loadTestData(testDataFile) };
 }
 
 // Steps the rule matcher cannot map, with the reason: the only ones the
@@ -104,7 +103,7 @@ export function propose(input: MappingInput, agent: AgentProposals, reviews: Rev
 // The installed app's id per platform, from the Expo config, so restarts
 // between scenarios target the app actually under test.
 function readAppIds(): Record<Platform, string> {
-  const { expo } = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf-8'));
+  const { expo } = JSON.parse(fs.readFileSync(path.join(appRoot(), 'app.json'), 'utf-8'));
   return { android: expo.android.package, ios: expo.ios.bundleIdentifier };
 }
 
@@ -117,8 +116,8 @@ export interface GenerateOptions {
 // would emit, and what `npm run approve` shows a person before they sign off.
 export function decideStory(dir: string, opts: GenerateOptions = {}) {
   const features = loadStory(dir);
-  const registry = loadRegistry(ROOT);
-  const testData = loadTestData(opts.testDataFile ?? DEFAULT_TEST_DATA);
+  const registry = loadRegistry(appRoot());
+  const testData = loadTestData(opts.testDataFile ?? defaultTestData());
   const agent = readAgentProposals(dir);
   const reviews = readReviews(dir);
   const testIds = proposeTestIds(registry);
@@ -190,7 +189,7 @@ export function generateStory(dir: string, opts: GenerateOptions = {}) {
   // One patch for every gap in the app, like the page objects.
   const remediationDir = path.join(outDir, 'remediation');
   fs.mkdirSync(remediationDir, { recursive: true });
-  fs.writeFileSync(path.join(remediationDir, 'testids.patch'), renderPatch(ROOT, testIds));
+  fs.writeFileSync(path.join(remediationDir, 'testids.patch'), renderPatch(appRoot(), testIds));
   fs.writeFileSync(path.join(remediationDir, 'README.md'), renderRemediation(testIds));
 
   fs.writeFileSync(path.join(outDir, 'grounding-report.md'), renderMarkdown(story, results));

@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
+import { appRoot, featuresDir } from '../paths.mts';
 import { fallbackFingerprint, mappingApproval, mappingFingerprint, type MappingEntry, type ReviewFlag } from '../approvals.mts';
 import { fallbackSelectors, fallbackStatus } from '../fallbacks.mts';
 import { ROOT, propose } from '../pipeline.mts';
@@ -27,7 +28,7 @@ test('a non-rule mapping needs a person, and any change to what it does needs th
 });
 
 test('unapproved agent mappings reach codegen marked, and rule matches need no approval', () => {
-  const input = { platform: 'ios' as const, steps: ['I tap Log In', 'I open the contribution form'], registry: loadRegistry(ROOT), testData: { personas: {}, records: {} } };
+  const input = { platform: 'ios' as const, steps: ['I tap Log In', 'I open the contribution form'], registry: loadRegistry(appRoot()), testData: { personas: {}, records: {} } };
   const [rule, agent] = propose(input, { ios: { 'I open the contribution form': entry() } });
   assert.equal(rule.approval, undefined);
   assert.equal(agent.approval, 'awaiting');
@@ -67,7 +68,7 @@ test('npm run approve refuses to let a mapping be approved by its own author', (
 });
 
 test('a match-critic flag holds a rule match for a person, only while it describes that exact match', () => {
-  const input = { platform: 'ios' as const, steps: ['I tap Log In'], registry: loadRegistry(ROOT), testData: { personas: {}, records: {} } };
+  const input = { platform: 'ios' as const, steps: ['I tap Log In'], registry: loadRegistry(appRoot()), testData: { personas: {}, records: {} } };
   const [unflagged] = propose(input, {});
   assert.equal(unflagged.approval, undefined);
   const fingerprint = mappingFingerprint(unflagged as unknown as MappingEntry);

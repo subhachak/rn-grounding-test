@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
+import { appRoot, featuresDir } from '../paths.mts';
 import { Unverifiable, evaluateCondition, resolveTemplate } from '../conditions.mts';
 import { ROOT, propose } from '../pipeline.mts';
 import { loadRegistry } from '../registry.mts';
@@ -33,7 +34,7 @@ test('an agent proposal never overrides a rule match', () => {
   const input: MappingInput = {
     platform: 'ios',
     steps: ['I tap Log In', 'I open the contribution form'],
-    registry: loadRegistry(ROOT),
+    registry: loadRegistry(appRoot()),
     testData: { personas: {}, records: {} },
   };
   const agent = {
@@ -50,7 +51,7 @@ test('an agent proposal never overrides a rule match', () => {
 test('the pipeline runs end to end, rules are never rejected, and every locator is grounded in source', () => {
   // Page objects land next to the story folder, so give the story its own dir.
   const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gen-')), 'STORY-101');
-  const r = spawnSync(process.execPath, [path.join(ROOT, 'generator/cli.mts'), path.join(ROOT, 'features/STORY-101'), '--out', out], {
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'generator/cli.mts'), path.join(featuresDir(), 'STORY-101'), '--out', out], {
     encoding: 'utf-8',
   });
   assert.equal(r.status, 0, r.stderr + r.stdout);
@@ -64,7 +65,7 @@ test('the pipeline runs end to end, rules are never rejected, and every locator 
 
   // The registry the tests were grounded against is saved with them.
   const saved = JSON.parse(fs.readFileSync(path.join(out, 'registry.json'), 'utf-8'));
-  assert.deepEqual(saved.findings, loadRegistry(ROOT));
+  assert.deepEqual(saved.findings, loadRegistry(appRoot()));
   assert.equal(saved.summary.missing, saved.findings.filter((f: { category: string }) => f.category === 'missing').length);
 
   // Locators live only in page objects: step files never build a selector.
@@ -75,7 +76,7 @@ test('the pipeline runs end to end, rules are never rejected, and every locator 
 
   // Every locator in the page objects is a registry value: static IDs
   // verbatim, templated IDs with the same fixed text around each placeholder.
-  const registry = loadRegistry(ROOT);
+  const registry = loadRegistry(appRoot());
   const shape = (v: string) => v.replace(/\$\{[^}]+\}/g, '${}');
   const known = new Set(
     registry

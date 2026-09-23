@@ -8,14 +8,15 @@
 // proposal or a scenario failed G5, so generated tests would be wrong.
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { DEFAULT_TEST_DATA, ROOT, generateStory } from './pipeline.mts';
+import { defaultTestData } from './paths.mts';
+import { ROOT, generateStory } from './pipeline.mts';
 import { summarize } from './report.mts';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     out: { type: 'string' },
-    'test-data': { type: 'string', default: DEFAULT_TEST_DATA },
+    'test-data': { type: 'string' },
   },
 });
 if (positionals.length !== 1) {
@@ -25,7 +26,7 @@ if (positionals.length !== 1) {
 
 const run = generateStory(path.resolve(positionals[0]), {
   outDir: values.out && path.resolve(values.out),
-  testDataFile: values['test-data'],
+  testDataFile: values['test-data'] ?? defaultTestData(),
 });
 
 for (const r of run.results) {

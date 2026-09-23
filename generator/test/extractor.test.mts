@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
+import { appRoot, featuresDir } from '../paths.mts';
 import { ROOT } from '../pipeline.mts';
 import { loadRegistry } from '../registry.mts';
 import { useTempOutput } from './helpers.mts';
@@ -51,7 +52,7 @@ test('each component in a file is its own screen', () => {
 test('generation is byte-identical run to run', () => {
   const run = () => {
     const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'det-')), 'STORY-101');
-    const r = spawnSync(process.execPath, [path.join(ROOT, 'generator/cli.mts'), path.join(ROOT, 'features/STORY-101'), '--out', out], { encoding: 'utf-8' });
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'generator/cli.mts'), path.join(featuresDir(), 'STORY-101'), '--out', out], { encoding: 'utf-8' });
     assert.equal(r.status, 0, r.stderr);
     const root = path.dirname(out);
     const files = (fs.readdirSync(root, { recursive: true, encoding: 'utf-8' }) as string[]).filter((f) => fs.statSync(path.join(root, f)).isFile()).sort();

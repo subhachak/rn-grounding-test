@@ -72,7 +72,7 @@ test('npm run clean removes one story\'s output and refuses paths outside it', (
   assert.equal(clean('STORY-CLEAN').status, 0);
   assert.equal(fs.existsSync(target), false);
   assert.notEqual(clean('../src').status, 0);
-  assert.ok(fs.existsSync(path.join(ROOT, 'src')));
+  assert.ok(fs.existsSync(path.join(ROOT, 'package.json')), 'nothing outside the output root was touched');
 });
 
 test('same-named scenarios (a Scenario Outline without placeholders in its title) each get their own results', () => {
