@@ -7,7 +7,7 @@ import { generateConfig, generateSteps } from './codegen.mts';
 import { loadStory, uniqueSteps } from './features.mts';
 import { decideScenarios, decideStep } from './gate.mts';
 import { matchStep } from './mapper/rules.mts';
-import { mappingApproval, type MappingEntry } from './approvals.mts';
+import { flagApproval, mappingApproval, mappingFingerprint, type MappingEntry, type Reviews } from './approvals.mts';
 import { fallbackStatus, loadValidations } from './fallbacks.mts';
 import { BASE_PAGE, buildPageModel, renderPage } from './pageobjects.mts';
 import { proposeTestIds, renderPatch, renderRemediation } from './remediation.mts';
@@ -25,6 +25,13 @@ export const defaultOutDir = (story: string) => path.join(ROOT, 'generated', sto
 // What the Copilot agent (or a QA engineer, marked "author": "human")
 // submitted, per platform and step text.
 export type AgentProposals = Partial<Record<Platform, Record<string, MappingEntry>>>;
+
+export const reviewFile = (storyDir: string) => path.join(storyDir, 'review.json');
+
+export function readReviews(storyDir: string): Reviews {
+  const file = reviewFile(storyDir);
+  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf-8')) : {};
+}
 
 export function readAgentProposals(storyDir: string): AgentProposals {
   const file = proposalsFile(storyDir);
@@ -58,11 +65,18 @@ export function agentSteps(input: MappingInput): Record<string, string> {
 
 // Rules first. The agent's proposal is used only where the rules found no
 // unambiguous match, so it can never override a deterministic mapping.
-export function propose(input: MappingInput, agent: AgentProposals): Proposal[] {
+export function propose(input: MappingInput, agent: AgentProposals, reviews: Reviews = {}): Proposal[] {
   const submitted = agent[input.platform] ?? {};
+  const flags = reviews[input.platform]?.flags ?? {};
   return input.steps.map((step): Proposal => {
     const m = matchStep(step, input);
-    if ('proposal' in m) return m.proposal;
+    if ('proposal' in m) {
+      // A critic flag holds a rule match for a person, but only while it
+      // still describes this exact match.
+      const flag = flags[step];
+      if (!flag || flag.fingerprint !== mappingFingerprint(m.proposal as MappingEntry)) return m.proposal;
+      return { ...m.proposal, flag: flag.concern, approval: flagApproval(flag) };
+    }
     if (submitted[step]) {
       const { author, authoredBy, approval, ...rest } = submitted[step];
       return {
@@ -105,13 +119,14 @@ export function decideStory(dir: string, opts: GenerateOptions = {}) {
   const registry = loadRegistry(ROOT);
   const testData = loadTestData(opts.testDataFile ?? DEFAULT_TEST_DATA);
   const agent = readAgentProposals(dir);
+  const reviews = readReviews(dir);
   const testIds = proposeTestIds(registry);
   const model = buildPageModel(registry, testIds);
   const validations = loadValidations(ROOT);
 
   const results: PlatformResult[] = PLATFORMS.map((platform) => {
     const feature = features[platform];
-    const proposals = propose({ platform, steps: uniqueSteps(feature), registry, testData }, agent);
+    const proposals = propose({ platform, steps: uniqueSteps(feature), registry, testData }, agent, reviews);
     const steps = proposals.map((p) => {
       const d = decideStep(p, registry, testData);
       const member = d.gap && model.byGap.get(`${d.gap.file}:${d.gap.line}`);
@@ -139,7 +154,7 @@ export function decideStory(dir: string, opts: GenerateOptions = {}) {
       scenarios: decideScenarios(feature, steps, testData),
     };
   });
-  return { features, registry, testData, agent, testIds, model, validations, results };
+  return { features, registry, testData, agent, reviews, testIds, model, validations, results };
 }
 
 export function generateStory(dir: string, opts: GenerateOptions = {}) {

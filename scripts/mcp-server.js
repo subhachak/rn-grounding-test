@@ -1,6 +1,7 @@
 // MCP server for the Copilot agents in .github/agents/:
 //   ground_selectors                       - "Selector Grounding" agent
 //   get_mapping_context, submit_proposals  - "Appium Test Generator" agent
+//   get_rule_matches, submit_review        - "Match Critic" agent
 //
 // Output is deliberately compact, tab-separated rows filtered by `view`,
 // instead of the full JSON registry: every token returned here is billed as
@@ -251,4 +252,100 @@ async function registerGenerationTools() {
   );
 }
 
-registerGenerationTools().then(() => server.connect(new StdioServerTransport()));
+// The match critic ("Match Critic" agent): reviews the deterministic rule
+// matches for meaning and can only flag them. A flag holds a rule match for
+// human approval; the critic cannot approve, change, or remove anything.
+async function registerCriticTools() {
+  const pipeline = await import('../generator/pipeline.mts');
+  const { mappingFingerprint } = await import('../generator/approvals.mts');
+  const { PLATFORMS } = await import('../generator/types.mts');
+
+  const text = (t) => ({ content: [{ type: 'text', text: t }] });
+  const fail = (e) => ({ content: [{ type: 'text', text: `Error: ${e.message}` }], isError: true });
+
+  const ruleMatches = (story, platform) => {
+    const { registry, results } = pipeline.decideStory(pipeline.storyDir(story));
+    const r = results.find((x) => x.platform === platform);
+    return { registry, matches: r.steps.filter((d) => d.proposal.source === 'rules') };
+  };
+
+  server.registerTool(
+    'get_rule_matches',
+    {
+      description:
+        'The steps of one platform feature that deterministic rules mapped, each with the element it mapped to ' +
+        '(type, visible text, screen, render condition). Review them for meaning, then call submit_review.',
+      inputSchema: { story: z.string(), platform: z.enum(PLATFORMS) },
+    },
+    async ({ story, platform }) => {
+      try {
+        const { registry, matches } = ruleMatches(story, platform);
+        const rows = matches.map((d, i) => {
+          const p = d.proposal;
+          const f = p.locator ? registry.find((x) => x.value === p.locator) : p.gap ? registry.find((x) => `${x.file}:${x.line}` === p.gap) : null;
+          const target = f
+            ? `${f.element}${f.description ? ` "${f.description}"` : ''} on ${f.screen}${f.conditions.length ? ` (shown only when ${f.conditions.join(' && ')})` : ''}`
+            : 'platform back navigation';
+          const detail = [p.record && `record ${p.record}`, p.text && `value "${p.text}"`, p.gap && 'element has no testID'].filter(Boolean).join(', ');
+          return `${i + 1}. "${d.step}" -> ${p.action}${p.intent ? ` (${p.intent})` : ''} ${target}${detail ? `; ${detail}` : ''}`;
+        });
+        return text(
+          `${matches.length} rule matches on ${platform}. Flag a match only when the element does not do what the step means ` +
+            `(wrong element, wrong screen, or the step means something the action does not). Do not flag wording or style.\n\n` +
+            rows.join('\n'),
+        );
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    'submit_review',
+    {
+      description:
+        'Record your review of one platform\'s rule matches: the steps you flag, each with a one-sentence concern. ' +
+        'Submit an empty list if none are doubtful. Flagged matches are held for a person to approve.',
+      inputSchema: {
+        story: z.string(),
+        platform: z.enum(PLATFORMS),
+        flags: z.array(z.object({ step: z.string(), concern: z.string() })),
+      },
+    },
+    async ({ story, platform, flags }) => {
+      try {
+        const dir = pipeline.storyDir(story);
+        const { matches } = ruleMatches(story, platform);
+        const byStep = new Map(matches.map((d) => [d.step, d]));
+        const reviews = pipeline.readReviews(dir);
+        const previous = reviews[platform]?.flags ?? {};
+        const kept = {};
+        const ignored = [];
+        for (const f of flags) {
+          const d = byStep.get(f.step);
+          if (!d) {
+            ignored.push(`"${f.step}" (not a rule match on ${platform})`);
+            continue;
+          }
+          const fingerprint = mappingFingerprint(d.proposal);
+          // Keep a person's approval of the same flag on the same match.
+          const approval = previous[f.step]?.fingerprint === fingerprint ? previous[f.step].approval : undefined;
+          kept[f.step] = { concern: f.concern, fingerprint, ...(approval && { approval }) };
+        }
+        reviews[platform] = { reviewedAt: new Date().toISOString(), reviewedBy: 'copilot-match-critic', ruleMatches: matches.length, flags: kept };
+        fs.writeFileSync(pipeline.reviewFile(dir), JSON.stringify(reviews, null, 2) + '\n');
+        pipeline.generateStory(dir);
+        const lines = [`${platform}: reviewed ${matches.length} rule matches, flagged ${Object.keys(kept).length} for human approval.`];
+        if (ignored.length) lines.push('IGNORED:', ...ignored.map((i) => `- ${i}`));
+        lines.push(`A person reviews flags with: npm run approve -- ${story} --list`);
+        return text(lines.join('\n'));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+}
+
+registerGenerationTools()
+  .then(registerCriticTools)
+  .then(() => server.connect(new StdioServerTransport()));

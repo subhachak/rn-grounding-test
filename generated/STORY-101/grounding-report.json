@@ -1770,7 +1770,7 @@
           "action": "assertVisible",
           "record": null,
           "text": null,
-          "rationale": "ThirdPartyWidgetScreen View",
+          "rationale": "ContributionDatePickerScreen View",
           "source": "rules",
           "locator": "contribution-date-picker-screen",
           "gap": null

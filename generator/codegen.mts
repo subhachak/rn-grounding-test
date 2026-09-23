@@ -64,11 +64,10 @@ function body(d: StepDecision, model: PageModel, testData: TestData, pagesUsed: 
   // approves it, whatever the gate said: the gate checks that a mapping is
   // possible, a person checks that it is right.
   if (d.proposal.approval && d.proposal.approval !== 'approved') {
-    const by = d.proposal.source === 'agent' ? 'Copilot agent' : 'QA';
-    return [
-      `// ${by} mapping ${APPROVAL_REASON[d.proposal.approval]}; gate verdict: ${d.verdict}`,
-      `return 'pending';`,
-    ];
+    const what = d.proposal.flag
+      ? `Rule match flagged by the match critic ("${d.proposal.flag}")`
+      : `${d.proposal.source === 'agent' ? 'Copilot agent' : 'QA'} mapping`;
+    return [`// ${what} ${APPROVAL_REASON[d.proposal.approval]}; gate verdict: ${d.verdict}`, `return 'pending';`];
   }
   const fallbackMember = d.fallback && model.byGap.get(d.fallback.key);
   if (fallbackMember) {

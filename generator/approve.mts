@@ -5,9 +5,10 @@
 //   npm run approve -- STORY-101 --fallback src/screens/ContributionFormScreen.tsx:17 [--platform android]
 //   npm run approve -- STORY-101 --all [--by "Name"]
 //
-// --list shows each mapping and fallback awaiting approval with the evidence
-// behind it. Approving records who and when, bound to a fingerprint of what
-// was shown, in features/<story>/proposals.json (mappings) or
+// --list shows each mapping, critic-flagged rule match, and fallback awaiting
+// approval with the evidence behind it. Approving records who and when,
+// bound to a fingerprint of what was shown, in features/<story>/proposals.json
+// (mappings), features/<story>/review.json (flagged rule matches), or
 // fallbacks/validations.json (fallbacks). --by defaults to `git config
 // user.name`. Nothing here runs a model; it only records a person's decision.
 import { execFileSync } from 'node:child_process';
@@ -16,7 +17,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fallbackFingerprint, mappingApproval, mappingFingerprint } from './approvals.mts';
 import { VALIDATIONS_FILE } from './fallbacks.mts';
-import { ROOT, decideStory, proposalsFile, storyDir } from './pipeline.mts';
+import { ROOT, decideStory, proposalsFile, reviewFile, storyDir } from './pipeline.mts';
 import { PLATFORMS, type Platform, type StepDecision } from './types.mts';
 
 const { values, positionals } = parseArgs({
@@ -37,10 +38,10 @@ if (positionals.length !== 1) {
 
 const dir = storyDir(path.basename(positionals[0]));
 const platforms = (values.platform ? [values.platform] : PLATFORMS) as Platform[];
-const { registry, agent, validations, results } = decideStory(dir);
+const { registry, agent, reviews, validations, results } = decideStory(dir);
 
 interface Pending {
-  kind: 'mapping' | 'fallback';
+  kind: 'mapping' | 'flagged rule match' | 'fallback';
   platform: Platform;
   id: string; // step text or gap location
   lines: string[];
@@ -51,6 +52,12 @@ for (const r of results.filter((x) => platforms.includes(x.platform))) {
   for (const d of r.steps) {
     const entry = agent[r.platform]?.[d.step];
     if (entry && mappingApproval(entry) !== 'approved') pending.push(mappingItem(r.platform, d, entry.authoredBy));
+    if (d.proposal.flag && d.proposal.approval !== 'approved') {
+      const item = mappingItem(r.platform, d);
+      item.kind = 'flagged rule match';
+      item.lines.splice(1, 1, `from:      rule match, flagged by the match critic: ${d.proposal.flag}`);
+      pending.push(item);
+    }
     if (d.fallback?.state === 'awaiting-approval') pending.push(fallbackItem(r.platform, d));
   }
 }
@@ -114,7 +121,7 @@ if (!by) {
 }
 
 const chosen = pending.filter(
-  (p) => values.all || (p.kind === 'mapping' ? values.step.includes(p.id) : values.fallback.includes(p.id)),
+  (p) => values.all || (p.kind === 'fallback' ? values.fallback.includes(p.id) : values.step.includes(p.id)),
 );
 const unknown = [...values.step, ...values.fallback].filter((id) => !pending.some((p) => p.id === id));
 if (unknown.length) {
@@ -126,7 +133,10 @@ const at = new Date().toISOString();
 const proposals = agent;
 const validationsOut = JSON.parse(JSON.stringify(validations));
 for (const p of chosen) {
-  if (p.kind === 'mapping') {
+  if (p.kind === 'flagged rule match') {
+    const flag = reviews[p.platform]!.flags[p.id];
+    flag.approval = { by, at, fingerprint: flag.fingerprint };
+  } else if (p.kind === 'mapping') {
     const entry = proposals[p.platform]![p.id];
     if (entry.authoredBy && entry.authoredBy.trim().toLowerCase() === by.trim().toLowerCase()) {
       console.error(`[${p.platform}] "${p.id}": ${by} wrote this mapping and cannot approve it; a second person must`);
@@ -140,6 +150,7 @@ for (const p of chosen) {
   console.log(`approved [${p.platform}] ${p.kind}: ${p.id}`);
 }
 if (chosen.some((p) => p.kind === 'mapping')) fs.writeFileSync(proposalsFile(dir), JSON.stringify(proposals, null, 2) + '\n');
+if (chosen.some((p) => p.kind === 'flagged rule match')) fs.writeFileSync(reviewFile(dir), JSON.stringify(reviews, null, 2) + '\n');
 if (chosen.some((p) => p.kind === 'fallback')) {
   fs.writeFileSync(path.join(ROOT, VALIDATIONS_FILE), JSON.stringify(validationsOut, null, 2) + '\n');
 }

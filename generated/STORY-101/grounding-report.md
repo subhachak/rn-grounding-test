@@ -4,7 +4,7 @@
 
 Feature: Member reviews plans and starts a contribution (`features/STORY-101/android.feature`).
 
-24 unique steps: 21 accepted (21 by rules, 0 by the Copilot agent, 0 by QA), 0 rejected, 2 ungrounded (0 awaiting the agent; 0 run on a device-validated fallback, 2 fallbacks awaiting validation), 1 warnings. 0 scenario-level (G5) errors. 4 awaiting human approval.
+24 unique steps: 21 accepted (21 by rules, 0 by the Copilot agent, 0 by QA), 0 rejected, 2 ungrounded (0 awaiting the agent; 0 run on a device-validated fallback, 2 fallbacks awaiting validation), 1 warnings. 0 scenario-level (G5) errors. 0 rule matches flagged by the match critic. 4 awaiting human approval.
 
 | Step | Verdict | Source | Action | Locator | Evidence / reason |
 |---|---|---|---|---|---|
@@ -37,7 +37,7 @@ Feature: Member reviews plans and starts a contribution (`features/STORY-101/and
 
 Feature: Member reviews plans and starts a contribution (`features/STORY-101/ios.feature`).
 
-26 unique steps: 24 accepted (24 by rules, 0 by the Copilot agent, 0 by QA), 0 rejected, 1 ungrounded (0 awaiting the agent; 0 run on a device-validated fallback, 1 fallbacks awaiting validation), 1 warnings. 0 scenario-level (G5) errors. 3 awaiting human approval.
+26 unique steps: 24 accepted (24 by rules, 0 by the Copilot agent, 0 by QA), 0 rejected, 1 ungrounded (0 awaiting the agent; 0 run on a device-validated fallback, 1 fallbacks awaiting validation), 1 warnings. 0 scenario-level (G5) errors. 0 rule matches flagged by the match critic. 3 awaiting human approval.
 
 | Step | Verdict | Source | Action | Locator | Evidence / reason |
 |---|---|---|---|---|---|

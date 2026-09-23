@@ -42,6 +42,8 @@ export interface RegistryFinding {
   description?: string | null;
   hasSpreadProps?: boolean;
   module?: string; // package the element is imported from, when not react-native
+  component?: string; // local wrapper used (e.g. PrimaryButton); element is what it renders
+  resolvedFrom?: string; // source expression a constant testID was resolved from
   file: string;
   line: number;
 }
@@ -91,8 +93,10 @@ export interface Proposal {
   // For an unmapped step that names a testability gap: what the step meant to
   // do there, so a device-validated fallback locator can carry it out.
   intent?: Exclude<Action, 'back' | 'unmapped' | 'choose'> | null;
-  // Human approval of a non-rule mapping (agent or QA); rule matches need none.
+  // Human approval of a non-rule mapping (agent or QA), or of a rule match
+  // the match critic flagged; unflagged rule matches need none.
   approval?: 'approved' | 'awaiting' | 'stale' | 'self-approved';
+  flag?: string; // the match critic's concern about this rule match
 }
 
 export interface MappingInput {

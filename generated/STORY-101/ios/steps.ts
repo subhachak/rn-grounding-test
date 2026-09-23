@@ -4,12 +4,12 @@ import { Given, When, Then } from '@wdio/cucumber-framework';
 import { driver } from '@wdio/globals';
 import { expectShown, expectHidden, typeText, chooseDate } from '../../pageobjects/base.page';
 import AccountSummaryPage from '../../pageobjects/account-summary.page';
+import ContributionDatePickerPage from '../../pageobjects/contribution-date-picker.page';
 import ContributionFormPage from '../../pageobjects/contribution-form.page';
 import DashboardPage from '../../pageobjects/dashboard.page';
 import LoginPage from '../../pageobjects/login.page';
 import PlanDetailsPage from '../../pageobjects/plan-details.page';
 import PlanListPage from '../../pageobjects/plan-list.page';
-import ThirdPartyWidgetPage from '../../pageobjects/third-party-widget.page';
 
 Given(/^the login screen is displayed$/, async () => {
   // testID=login-screen (src/screens/LoginScreen.tsx:10), proposed by rule match
@@ -118,13 +118,13 @@ When(/^I open the contribution schedule$/, async () => {
 
 Then(/^the contribution date picker is displayed$/, async () => {
   // testID=contribution-date-picker-screen (src/screens/ThirdPartyWidgetScreen.tsx:15), proposed by rule match
-  await expectShown(ThirdPartyWidgetPage.root, { container: true });
+  await expectShown(ContributionDatePickerPage.root, { container: true });
 });
 
 When(/^I choose "2026-10-01" in the date picker$/, async () => {
   // testID=contribution-date-picker (src/screens/ThirdPartyWidgetScreen.tsx:18), proposed by rule match
   // vendor adapter for @react-native-community/datetimepicker (base.page.ts chooseDate)
-  await chooseDate(ThirdPartyWidgetPage.contributionDatePicker, "2026-10-01");
+  await chooseDate(ContributionDatePickerPage.contributionDatePicker, "2026-10-01");
 });
 
 When(/^I tap Account Summary$/, async () => {

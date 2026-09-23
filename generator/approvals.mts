@@ -45,6 +45,29 @@ export function mappingApproval(e: MappingEntry): ApprovalState {
   return 'approved';
 }
 
+// The match critic's flags on rule matches, per platform and step. A flag
+// holds the rule match until a person approves it; it is bound to the
+// fingerprint of the match it questioned, so a changed match drops it (and
+// needs reviewing again) rather than inheriting an old concern or approval.
+export interface ReviewFlag {
+  concern: string;
+  fingerprint: string;
+  approval?: Approval;
+}
+
+export interface Review {
+  reviewedAt: string;
+  reviewedBy: string;
+  ruleMatches: number;
+  flags: Record<string, ReviewFlag>;
+}
+
+export type Reviews = Partial<Record<'android' | 'ios', Review>>;
+
+export function flagApproval(flag: ReviewFlag): ApprovalState {
+  return flag.approval?.fingerprint === flag.fingerprint ? 'approved' : 'awaiting';
+}
+
 export const APPROVAL_REASON: Record<Exclude<ApprovalState, 'approved'>, string> = {
   awaiting: 'awaiting human approval (npm run approve)',
   stale: 'changed since it was approved; needs approving again',

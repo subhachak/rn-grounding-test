@@ -13,6 +13,7 @@ export function summarize(r: PlatformResult) {
     byHuman: accepted('human'),
     fallbacksValidated: r.steps.filter((s) => s.fallback?.state === 'validated').length,
     fallbacksPending: r.steps.filter((s) => s.fallback && s.fallback.state !== 'validated').length,
+    flagged: r.steps.filter((s) => s.proposal.flag).length,
     awaitingApproval:
       r.steps.filter((s) => s.proposal.approval && s.proposal.approval !== 'approved').length +
       r.steps.filter((s) => s.fallback?.state === 'awaiting-approval').length,
@@ -40,13 +41,15 @@ export function renderMarkdown(story: string, results: PlatformResult[]): string
         `${s.byHuman} by QA), ${s.rejected} rejected, ${s.ungrounded} ungrounded (${s.awaitingAgent} awaiting the agent; ` +
         `${s.fallbacksValidated} run on a device-validated fallback, ${s.fallbacksPending} fallbacks awaiting validation), ` +
         `${s.warnings} warnings. ${s.scenarioErrors} scenario-level (G5) errors. ` +
-        `${s.awaitingApproval} awaiting human approval.`,
+        `${s.flagged} rule matches flagged by the match critic. ${s.awaitingApproval} awaiting human approval.`,
       '',
       '| Step | Verdict | Source | Action | Locator | Evidence / reason |',
       '|---|---|---|---|---|---|',
     );
     for (const d of r.steps) {
-      const approval = d.proposal.approval && d.proposal.approval !== 'approved' ? ` (${d.proposal.approval} approval)` : '';
+      const approval =
+        (d.proposal.flag ? ` (critic: ${d.proposal.flag})` : '') +
+        (d.proposal.approval && d.proposal.approval !== 'approved' ? ` (${d.proposal.approval} approval)` : '');
       const locator = d.locator ? `\`${d.locator.id}\`` : d.proposal.locator ? `\`${d.proposal.locator}\`` : '-';
       const reason =
         d.verdict === 'accepted'

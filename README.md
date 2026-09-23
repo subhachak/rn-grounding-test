@@ -44,6 +44,25 @@ scripts/mcp-server.js          exposes the script as an MCP tool (ground_selecto
 .github/copilot-instructions.md  repo-level instructions for Copilot Chat/agent
 ```
 
+## What the extractor sees through
+
+- **Constants**: `testID={IDS.login.submit}` or `testID={SUBMIT_ID}`,
+  including constants imported from local files, resolve to their literal
+  value (`resolvedFrom` records the expression); constant parts of a
+  template are inlined and runtime parts stay placeholders.
+- **Wrapper components**: `<PrimaryButton testID="save">` is recorded as the
+  native element the wrapper forwards its testID to (`element:
+  TouchableOpacity`, `component: PrimaryButton`), through nested wrappers;
+  the wrapper's own `testID={testID}` pass-through is not reported.
+- **Screens are components**: several components in one file are separate
+  screens.
+- **Deterministic output**: files are read in sorted order, and a test
+  proves generation is byte-identical run to run.
+
+Covered by fixtures in `generator/test/fixtures/blindspots/` (excluded from
+real scans). Still not seen: conditions decided outside the component
+(props or context from elsewhere), and testIDs passed through spread props.
+
 ## Running the grounding script
 
 ```bash
@@ -175,6 +194,18 @@ bound to a fingerprint of exactly what was approved: if the mapping or the
 fallback selector changes later, it needs approving again. Whoever wrote a
 mapping (`authoredBy`) cannot approve it. Until approved, the step is
 generated as `pending` with the reason and the gate's verdict.
+
+### Match critic: a second look at rule matches
+
+Rule matches are exact and single, so they need no approval, but rules
+cannot judge meaning. The **Match Critic** Copilot agent (`/review-matches
+STORY-101`) reviews them through two tools, `get_rule_matches` (each match
+with its element, visible text, screen, and render condition) and
+`submit_review`, and can only flag. A flag, stored in
+`features/<story>/review.json` and bound to the fingerprint of the match it
+questions, holds that match as `pending` until a person approves it with
+`npm run approve`; a flag on a match that has since changed no longer
+applies. The critic cannot approve, change, or remove anything.
 
 ### Vendor components: adapters for what static extraction cannot see
 

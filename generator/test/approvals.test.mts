@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { fallbackFingerprint, mappingApproval, mappingFingerprint, type MappingEntry } from '../approvals.mts';
+import { fallbackFingerprint, mappingApproval, mappingFingerprint, type MappingEntry, type ReviewFlag } from '../approvals.mts';
 import { fallbackSelectors, fallbackStatus } from '../fallbacks.mts';
 import { ROOT, propose } from '../pipeline.mts';
 import { loadRegistry } from '../registry.mts';
@@ -61,4 +61,20 @@ test('npm run approve refuses to let a mapping be approved by its own author', (
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /cannot approve it/);
   assert.equal(fs.readFileSync(file, 'utf-8'), before);
+});
+
+test('a match-critic flag holds a rule match for a person, only while it describes that exact match', () => {
+  const input = { platform: 'ios' as const, steps: ['I tap Log In'], registry: loadRegistry(ROOT), testData: { personas: {}, records: {} } };
+  const [unflagged] = propose(input, {});
+  assert.equal(unflagged.approval, undefined);
+  const fingerprint = mappingFingerprint(unflagged as unknown as MappingEntry);
+  const review = (flag: ReviewFlag) => ({ ios: { reviewedAt: 't', reviewedBy: 'critic', ruleMatches: 1, flags: { 'I tap Log In': flag } } });
+
+  const [held] = propose(input, {}, review({ concern: 'doubt', fingerprint }));
+  assert.deepEqual([held.flag, held.approval], ['doubt', 'awaiting']);
+  const [released] = propose(input, {}, review({ concern: 'doubt', fingerprint, approval: { by: 'Asha', at: 't', fingerprint } }));
+  assert.equal(released.approval, 'approved');
+  // A flag about a different (older) match does not carry over.
+  const [changed] = propose(input, {}, review({ concern: 'doubt', fingerprint: 'something-else' }));
+  assert.equal(changed.flag, undefined);
 });
